@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
-from ..models import Snapshot
+from ..models import Component, Snapshot
 from .arvato import ArvatoProvider
 from .base import Provider, ProviderError
 from .ehealth import EHealthProvider
@@ -87,6 +88,32 @@ def default_selection(source_key: str, snapshot: Snapshot) -> list[str]:
     return [c.id for c in comps]
 
 
+def _natural_key(text: str) -> list[Any]:
+    """Sort "2. Coding" before "10. CoBRHA": numbers compare as numbers."""
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", text.casefold())]
+
+
+def ordered_for_display(snapshot: Snapshot) -> list[tuple[Component, bool]]:
+    """Components in display order, as (component, is_member_of_a_group_shown_above).
+
+    Groups are sorted naturally and each is followed by its own services in the
+    order the status page lists them; services without a group come last.
+    """
+    comps = list(snapshot.components.values())
+    groups = sorted((c for c in comps if c.is_group), key=lambda c: _natural_key(c.name))
+    group_names = {g.name for g in groups}
+    result: list[tuple[Component, bool]] = []
+    for group in groups:
+        result.append((group, False))
+        members = [c for c in comps if not c.is_group and c.group == group.name]
+        # Page position when known; otherwise keep the order the page gave them in.
+        members.sort(key=lambda c: (c.position is None, c.position or 0))
+        result += [(c, True) for c in members]
+    loose = [c for c in comps if not c.is_group and c.group not in group_names]
+    result += [(c, False) for c in sorted(loose, key=lambda c: _natural_key(c.name))]
+    return result
+
+
 def build_provider(provider_type: str, params: dict[str, Any]) -> Provider:
     """Instantiate a provider from stored settings."""
     try:
@@ -105,4 +132,5 @@ __all__ = [
     "build_provider",
     "build_sources",
     "default_selection",
+    "ordered_for_display",
 ]

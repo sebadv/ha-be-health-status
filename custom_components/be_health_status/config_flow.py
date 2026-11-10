@@ -42,22 +42,21 @@ from .providers import (
     build_provider,
     build_sources,
     default_selection,
+    ordered_for_display,
 )
 
 CONF_SKIP = "skip"
 
 
 def _component_options(snapshot: Snapshot) -> list[SelectOptionDict]:
-    """Groups first, then services; the label shows the group a service is in."""
-    comps = sorted(
-        snapshot.components.values(),
-        key=lambda c: (not c.is_group, (c.group or c.name).lower(), c.name.lower()),
-    )
+    """Each group followed by its services, in the order of the status page."""
     options: list[SelectOptionDict] = []
-    for comp in comps:
+    for comp, is_member in ordered_for_display(snapshot):
         if comp.is_group:
             label = f"▣ {comp.name}"
-        elif comp.group and comp.group not in comp.name:
+        elif is_member:
+            label = f"   ↳ {comp.name}"
+        elif comp.group:
             label = f"{comp.name}  ({comp.group})"
         else:
             label = comp.name

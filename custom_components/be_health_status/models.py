@@ -57,6 +57,8 @@ class Component:
     group: str | None = None
     is_group: bool = False
     last_updated: str | None = None
+    #: Position on the status page within its group, when the page gives one.
+    position: int | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
 

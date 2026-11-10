@@ -57,6 +57,7 @@ def parse_statuspage(summary: Any) -> Snapshot:
             group=groups.get(row.get("group_id")),
             is_group=bool(row.get("group")),
             last_updated=row.get("updated_at"),
+            position=row.get("position") if isinstance(row.get("position"), int) else None,
         )
 
     events = [

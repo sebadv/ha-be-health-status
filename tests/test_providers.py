@@ -274,3 +274,29 @@ def test_parse_datetime():
     assert parse_datetime("2026-11-10T11:25:00Z").tzinfo is not None
     assert parse_datetime("garbage") is None
     assert parse_datetime(None) is None
+
+
+def test_display_order_is_natural_and_grouped(load_json):
+    from custom_components.be_health_status.models import Component
+    from custom_components.be_health_status.providers import ordered_for_display
+
+    snap = parse_ehealth(load_json("ehealth_components.json"), "nl")
+    for n in (10, 2):  # add groups that sort wrongly as text
+        snap.components[f"group:x{n}"] = Component(
+            id=f"group:x{n}", name=f"{n}. Extra", status=Status.OPERATIONAL, is_group=True
+        )
+    order = [(c.name, member) for c, member in ordered_for_display(snap)]
+    groups = [name for name, member in order if not member]
+    assert groups == [
+        "1. IAM - Identity & Access Management",
+        "2. Coding service",
+        "2. Extra",
+        "10. Extra",
+        "16. WebService",
+        "17. Web Application",
+    ]
+    # services follow their own group, by page position (Vitalink Gateway 9 before Recip-e Patient 12)
+    i = order.index(("16. WebService", False))
+    assert order[i + 1 : i + 3] == [("Vitalink Gateway", True), ("Recip-e Patient", True)]
+    i = order.index(("1. IAM - Identity & Access Management", False))
+    assert order[i + 1][0].startswith("eHealth IDP") and order[i + 2][0].startswith("WebService eHealth")

@@ -69,6 +69,7 @@ def parse_ehealth(payload: Any, lang: str) -> Snapshot:
             raw_status=row.get("status_name"),
             group=group_name,
             last_updated=row.get("last_updated"),
+            position=row.get("order") if isinstance(row.get("order"), int) else None,
             extra={"status_code": row.get("status_code")},
         )
         components[comp.id] = comp
