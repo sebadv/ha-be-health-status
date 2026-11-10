@@ -1,4 +1,4 @@
-"""A problem sensor per status page, handy for notifications."""
+"""A problem sensor per source, handy for notifications."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from homeassistant.components.binary_sensor import BinarySensorDeviceClass, Bina
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import HealthStatusConfigEntry, HealthStatusCoordinator
-from .entity import HealthStatusEntity
+from .coordinator import HealthStatusConfigEntry, SourceRuntime
+from .entity import HealthStatusEntity, remove_stale_entities
 from .models import PROBLEM_STATUSES
 
 PARALLEL_UPDATES = 0
@@ -20,8 +20,10 @@ async def async_setup_entry(
     entry: HealthStatusConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Create the problem sensor."""
-    async_add_entities([ProblemSensor(entry.runtime_data)])
+    """Create one problem sensor per source."""
+    entities = [ProblemSensor(source) for source in entry.runtime_data.values()]
+    async_add_entities(entities)
+    remove_stale_entities(hass, entry, "binary_sensor", {e.unique_id for e in entities if e.unique_id})
 
 
 class ProblemSensor(HealthStatusEntity, BinarySensorEntity):
@@ -30,18 +32,16 @@ class ProblemSensor(HealthStatusEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_translation_key = "problem"
 
-    def __init__(self, coordinator: HealthStatusCoordinator) -> None:
-        super().__init__(coordinator, "problem")
+    def __init__(self, source: SourceRuntime) -> None:
+        super().__init__(source, "problem")
 
-    def _scope(self):
-        comps = self.selected_components()
-        if not comps and self.coordinator.data:
-            comps = list(self.coordinator.data.components.values())
-        return comps
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.data is not None
 
     @property
     def is_on(self) -> bool:
-        return any(c.status in PROBLEM_STATUSES for c in self._scope()) or bool(
+        return any(c.status in PROBLEM_STATUSES for c in self.scope()) or bool(
             self.relevant_events("incident")
         )
 
@@ -50,7 +50,7 @@ class ProblemSensor(HealthStatusEntity, BinarySensorEntity):
         return {
             "affected": [
                 f"{c.name}: {c.raw_status or c.status.value}"
-                for c in self._scope()
+                for c in self.scope()
                 if c.status in PROBLEM_STATUSES
             ],
             "incidents": [

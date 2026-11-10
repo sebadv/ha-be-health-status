@@ -9,7 +9,13 @@ from __future__ import annotations
 import pytest
 
 from custom_components.be_health_status.models import SEVERITY, Status, worst
-from custom_components.be_health_status.providers import PRESETS, PROVIDERS, build_provider
+from custom_components.be_health_status.providers import (
+    PROVIDERS,
+    TOPICS,
+    build_provider,
+    build_sources,
+    default_selection,
+)
 from custom_components.be_health_status.providers.arvato import parse_arvato
 from custom_components.be_health_status.providers.base import ProviderError, parse_datetime
 from custom_components.be_health_status.providers.ehealth import (
@@ -225,9 +231,33 @@ def test_intermut_french(load_text):
 # --- registry / helpers ----------------------------------------------------
 
 
-def test_presets_point_to_known_providers():
-    for preset in PRESETS.values():
-        assert preset["provider"] in PROVIDERS
+def test_build_sources_all_topics():
+    sources = build_sources(list(TOPICS), ["pharma", "nurses"], "nl")
+    assert list(sources) == [
+        "ehealth", "careconnect", "itsme", "nmvs", "rijksregister", "mycarenet_pharma", "mycarenet_nurses",
+    ]
+    for source in sources.values():
+        assert source["provider"] in PROVIDERS
+        build_provider(source["provider"], source["params"])  # must not raise
+    assert sources["mycarenet_pharma"]["title"] == "MyCareNet apothekers"
+    assert sources["ehealth"]["params"] == {"language": "nl"}
+
+
+def test_build_sources_subset_and_french():
+    sources = build_sources(["itsme", "rijksregister"], [], "fr")
+    assert list(sources) == ["itsme", "rijksregister"]
+    assert sources["rijksregister"]["title"] == "Registre national"
+    # MyCareNet ticked without sectors yields nothing (the flow asks for at least one)
+    assert build_sources(["mycarenet"], [], "nl") == {}
+
+
+def test_default_selection(load_json):
+    nmvs = default_selection("nmvs", parse_arvato(load_json("arvato_services.json")))
+    assert sorted(nmvs) == ["belgium-api-cer", "belgium-sg", "belgium-ws"]
+    eh = default_selection("ehealth", parse_ehealth(load_json("ehealth_components.json"), "nl"))
+    assert eh and all(cid.startswith("group:") for cid in eh)
+    itsme = default_selection("itsme", parse_statuspage(load_json("statuspage_summary.json")))
+    assert len(itsme) == 8
 
 
 def test_unique_ids_differ_per_page():

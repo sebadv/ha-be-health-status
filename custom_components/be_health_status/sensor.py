@@ -1,4 +1,4 @@
-"""Status sensors: one per selected service, one overall, and next maintenance."""
+"""Status sensors: one per selected service, one overall per source, next maintenance."""
 
 from __future__ import annotations
 
@@ -6,19 +6,21 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import HealthStatusConfigEntry, HealthStatusCoordinator
-from .entity import HealthStatusEntity
+from .coordinator import HealthStatusConfigEntry, SourceRuntime
+from .entity import HealthStatusEntity, remove_stale_entities
 from .models import Status, worst
 from .providers.statuspage import StatuspageProvider
 
 PARALLEL_UPDATES = 0
 
 STATUS_OPTIONS = [s.value for s in Status]
-COMPONENT_PREFIX = "c_"
+
+
+def _component_key(component_id: str) -> str:
+    return f"c_{component_id}"
 
 
 async def async_setup_entry(
@@ -26,26 +28,15 @@ async def async_setup_entry(
     entry: HealthStatusConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Create sensors for the selected services."""
-    coordinator = entry.runtime_data
-    selected: list[str] = list(entry.options.get("components", []))
-    entities: list[SensorEntity] = [OverallStatusSensor(coordinator)]
-    entities += [ComponentStatusSensor(coordinator, cid) for cid in selected]
-    if isinstance(coordinator.provider, StatuspageProvider):
-        entities.append(NextMaintenanceSensor(coordinator))
+    """Create the sensors of every source."""
+    entities: list[SensorEntity] = []
+    for source in entry.runtime_data.values():
+        entities.append(OverallStatusSensor(source))
+        entities += [ComponentStatusSensor(source, cid, name) for cid, name in source.components.items()]
+        if isinstance(source.coordinator.provider, StatuspageProvider):
+            entities.append(NextMaintenanceSensor(source))
     async_add_entities(entities)
-
-    # Drop the sensors of services that were deselected in the options.
-    registry = er.async_get(hass)
-    keep = {f"{entry.unique_id or entry.entry_id}_{COMPONENT_PREFIX}{cid}" for cid in selected}
-    prefix = f"{entry.unique_id or entry.entry_id}_{COMPONENT_PREFIX}"
-    for reg_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
-        if (
-            reg_entry.domain == "sensor"
-            and reg_entry.unique_id.startswith(prefix)
-            and reg_entry.unique_id not in keep
-        ):
-            registry.async_remove(reg_entry.entity_id)
+    remove_stale_entities(hass, entry, "sensor", {e.unique_id for e in entities if e.unique_id})
 
 
 class ComponentStatusSensor(HealthStatusEntity, SensorEntity):
@@ -55,11 +46,11 @@ class ComponentStatusSensor(HealthStatusEntity, SensorEntity):
     _attr_options = STATUS_OPTIONS
     _attr_translation_key = "status"
 
-    def __init__(self, coordinator: HealthStatusCoordinator, component_id: str) -> None:
-        super().__init__(coordinator, f"{COMPONENT_PREFIX}{component_id}")
+    def __init__(self, source: SourceRuntime, component_id: str, name: str) -> None:
+        super().__init__(source, _component_key(component_id))
         self._component_id = component_id
-        comp = coordinator.data.components.get(component_id) if coordinator.data else None
-        self._attr_name = comp.name if comp else component_id
+        comp = source.coordinator.data.components.get(component_id) if source.coordinator.data else None
+        self._attr_name = comp.name if comp and name == component_id else name
 
     @property
     def available(self) -> bool:
@@ -71,12 +62,14 @@ class ComponentStatusSensor(HealthStatusEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
         comp = self.coordinator.data.components.get(self._component_id)
         return comp.status.value if comp else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        comp = self.coordinator.data.components.get(self._component_id)
+        comp = self.coordinator.data.components.get(self._component_id) if self.coordinator.data else None
         if comp is None:
             return {}
         attrs: dict[str, Any] = {
@@ -86,63 +79,59 @@ class ComponentStatusSensor(HealthStatusEntity, SensorEntity):
             "is_group": comp.is_group,
             "last_updated": comp.last_updated,
         }
-        attrs.update({k: v for k, v in comp.extra.items() if v is not None})
+        attrs.update(comp.extra)
         return {k: v for k, v in attrs.items() if v is not None}
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        comp = self.coordinator.data.components.get(self._component_id)
-        if comp and comp.name != self._attr_name:
-            self._attr_name = comp.name
-        super()._handle_coordinator_update()
 
 
 class OverallStatusSensor(HealthStatusEntity, SensorEntity):
-    """Worst status among the selected services (all services when none are selected)."""
+    """Worst status among the selected services of a source."""
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = STATUS_OPTIONS
     _attr_translation_key = "overall"
 
-    def __init__(self, coordinator: HealthStatusCoordinator) -> None:
-        super().__init__(coordinator, "overall")
+    def __init__(self, source: SourceRuntime) -> None:
+        super().__init__(source, "overall")
 
-    def _scope(self):
-        comps = self.selected_components()
-        if not comps and self.coordinator.data:
-            comps = list(self.coordinator.data.components.values())
-        return comps
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.data is not None
 
     @property
     def native_value(self) -> str:
-        return worst([c.status for c in self._scope()]).value
+        return worst([c.status for c in self.scope()]).value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        affected = [c for c in self._scope() if c.status != Status.OPERATIONAL]
+        scope = self.scope()
         return {
-            "affected": [f"{c.name}: {c.raw_status or c.status.value}" for c in affected],
-            "monitored": len(self._scope()),
+            "affected": [
+                f"{c.name}: {c.raw_status or c.status.value}" for c in scope if c.status != Status.OPERATIONAL
+            ],
+            "monitored": len(scope),
         }
 
 
 class NextMaintenanceSensor(HealthStatusEntity, SensorEntity):
-    """Start of the next announced maintenance (Statuspage pages)."""
+    """Start of the next announced maintenance (itsme)."""
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_translation_key = "next_maintenance"
 
-    def __init__(self, coordinator: HealthStatusCoordinator) -> None:
-        super().__init__(coordinator, "next_maintenance")
+    def __init__(self, source: SourceRuntime) -> None:
+        super().__init__(source, "next_maintenance")
+
+    def _events(self):
+        return [e for e in self.relevant_events("maintenance") if e.starts_at]
 
     @property
     def native_value(self) -> datetime | None:
-        events = [e for e in self.relevant_events("maintenance") if e.starts_at]
+        events = self._events()
         return events[0].starts_at if events else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        events = [e for e in self.relevant_events("maintenance") if e.starts_at]
+        events = self._events()
         if not events:
             return {}
         nxt = events[0]
@@ -151,7 +140,8 @@ class NextMaintenanceSensor(HealthStatusEntity, SensorEntity):
             "ends_at": nxt.ends_at.isoformat() if nxt.ends_at else None,
             "url": nxt.url,
             "upcoming": [
-                {"title": e.name, "starts_at": e.starts_at.isoformat(), "url": e.url}
-                for e in events[:5]
+                {"title": e.name, "starts_at": e.starts_at.isoformat(), "url": e.url} for e in events[:5]
             ],
         }
+
+

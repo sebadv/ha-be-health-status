@@ -2,70 +2,87 @@
   "config": {
     "step": {
       "user": {
-        "title": "Add a status page",
-        "description": "Which service status do you want to follow?",
+        "title": "BE Health Status",
+        "description": "Tick everything you want to follow. In the next steps you choose the services of each.",
         "data": {
-          "source": "Source"
+          "topics": "What do you want to follow?"
         }
       },
-      "settings": {
-        "title": "Settings",
-        "description": "A few details for this source.",
+      "sectors": {
+        "title": "MyCareNet",
+        "description": "For which sector(s) do you want to follow MyCareNet?",
         "data": {
-          "url": "Address of the status page",
-          "language": "Language",
-          "sector": "Sector"
-        },
-        "data_description": {
-          "url": "The address you open in a browser to see the status page."
+          "sectors": "Sectors"
         }
       },
       "components": {
-        "title": "Services",
-        "description": "This page lists {count} services. ▣ marks a group, whose status is the worst of the services in it. Each selected item becomes a sensor.",
+        "title": "{source}",
+        "description": "{source} lists {count} services. Tick the ones that should become a sensor. ▣ marks a group: it gets the worst status of the services in it.",
         "data": {
-          "components": "Services to monitor"
+          "components": "Services"
+        }
+      },
+      "unreachable": {
+        "title": "{source} unreachable",
+        "description": "{source} did not answer just now. Submit to try again, or tick the box to continue and keep your earlier choice for it.",
+        "data": {
+          "skip": "Skip for now"
         }
       }
     },
     "error": {
-      "cannot_connect": "The status page could not be reached or was not understood. Check the address and try again."
+      "no_topics": "Tick at least one item.",
+      "no_sectors": "Tick at least one sector."
     },
     "abort": {
-      "already_configured": "This status page is already added."
+      "already_configured": "BE Health Status is already set up. Use Configure on it to change what you follow."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Monitored services",
-        "description": "This page lists {count} services. ▣ marks a group, whose status is the worst of the services in it. Each selected item becomes a sensor.",
+        "title": "What do you follow?",
+        "description": "Tick everything you want to follow. In the next steps you choose the services of each.",
         "data": {
-          "components": "Services to monitor"
+          "topics": "What do you want to follow?"
+        }
+      },
+      "sectors": {
+        "title": "MyCareNet",
+        "description": "For which sector(s) do you want to follow MyCareNet?",
+        "data": {
+          "sectors": "Sectors"
+        }
+      },
+      "components": {
+        "title": "{source}",
+        "description": "{source} lists {count} services. Tick the ones that should become a sensor. ▣ marks a group: it gets the worst status of the services in it.",
+        "data": {
+          "components": "Services"
+        }
+      },
+      "unreachable": {
+        "title": "{source} unreachable",
+        "description": "{source} did not answer just now. Submit to try again, or tick the box to continue and keep your earlier choice for it.",
+        "data": {
+          "skip": "Skip for now"
         }
       }
     },
-    "abort": {
-      "cannot_connect": "The status page could not be reached or was not understood. Check the address and try again."
+    "error": {
+      "no_topics": "Tick at least one item.",
+      "no_sectors": "Tick at least one sector."
     }
   },
   "selector": {
-    "source": {
+    "topic": {
       "options": {
-        "ehealth": "eHealth (status.ehealth.fgov.be)",
+        "ehealth": "eHealth – Recip-e, Vitalink, eHealthBox, …",
         "careconnect": "CareConnect / Corilus",
         "itsme": "itsme",
-        "nmvs": "NMVS – medicines verification (Arvato)",
-        "rijksregister": "National Register (IBZ)",
-        "mycarenet": "MyCareNet (intermutualistic dashboard)",
-        "statuspage": "Other Statuspage.io page",
-        "pagerduty": "Other PagerDuty status page"
-      }
-    },
-    "language": {
-      "options": {
-        "nl": "Dutch",
-        "fr": "French"
+        "nmvs": "NMVS – medicines verification",
+        "rijksregister": "National Register – eID, BAEC",
+        "mycarenet": "MyCareNet – health insurers"
       }
     },
     "sector": {

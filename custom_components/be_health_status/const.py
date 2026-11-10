@@ -4,10 +4,12 @@ from __future__ import annotations
 
 DOMAIN = "be_health_status"
 
-CONF_PROVIDER = "provider"
-CONF_PARAMS = "params"
+# Stored in the config entry options:
+#   topics:     ["ehealth", "mycarenet", ...]   what the user ticked
+#   sectors:    ["pharma", ...]                 MyCareNet sectors
+#   sources:    {key: {provider, params, title}} one device each
+#   components: {key: {component_id: name}}     the services to create sensors for
+CONF_TOPICS = "topics"
+CONF_SECTORS = "sectors"
+CONF_SOURCES = "sources"
 CONF_COMPONENTS = "components"
-CONF_SOURCE = "source"
-
-# Above this many components, the setup pre-selects only the groups.
-PRESELECT_ALL_BELOW = 16

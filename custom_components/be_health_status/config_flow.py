@@ -1,4 +1,12 @@
-"""Config flow: pick a source, fill in its settings, then pick the services."""
+"""Setup: tick the topics to follow, then pick the services of each topic.
+
+The integration is added once. Both the initial setup and "Configure" walk
+through the same steps:
+
+1. ``user`` / ``init``: which topics (eHealth, CareConnect, itsme, ...)
+2. ``sectors``: which MyCareNet sectors (only when MyCareNet is ticked)
+3. ``components``: once per source, which of its services become sensors
+"""
 
 from __future__ import annotations
 
@@ -15,174 +23,222 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlowWithReload,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
-    TextSelector,
-    TextSelectorConfig,
-    TextSelectorType,
 )
 
-from .const import (
-    CONF_COMPONENTS,
-    CONF_PARAMS,
-    CONF_PROVIDER,
-    CONF_SOURCE,
-    DOMAIN,
-    PRESELECT_ALL_BELOW,
-)
+from .const import CONF_COMPONENTS, CONF_SECTORS, CONF_SOURCES, CONF_TOPICS, DOMAIN
 from .models import Snapshot
-from .providers import PRESETS, PROVIDERS, Provider, ProviderError, build_provider
+from .providers import (
+    SECTORS,
+    TOPICS,
+    ProviderError,
+    build_provider,
+    build_sources,
+    default_selection,
+)
+
+CONF_SKIP = "skip"
 
 
 def _component_options(snapshot: Snapshot) -> list[SelectOptionDict]:
-    """Groups first, then services, both alphabetically; label shows the group."""
+    """Groups first, then services; the label shows the group a service is in."""
     comps = sorted(
-        snapshot.components.values(), key=lambda c: (not c.is_group, (c.group or c.name).lower(), c.name.lower())
+        snapshot.components.values(),
+        key=lambda c: (not c.is_group, (c.group or c.name).lower(), c.name.lower()),
     )
     options: list[SelectOptionDict] = []
     for comp in comps:
-        label = comp.name
         if comp.is_group:
             label = f"▣ {comp.name}"
         elif comp.group and comp.group not in comp.name:
             label = f"{comp.name}  ({comp.group})"
+        else:
+            label = comp.name
         options.append(SelectOptionDict(value=comp.id, label=label))
     return options
 
 
-def _default_selection(snapshot: Snapshot) -> list[str]:
-    comps = list(snapshot.components.values())
-    if len(comps) < PRESELECT_ALL_BELOW:
-        return [c.id for c in comps]
-    groups = [c.id for c in comps if c.is_group]
-    return groups or [c.id for c in comps[:PRESELECT_ALL_BELOW]]
+class _SetupSteps:
+    """Steps shared by the config flow and the options flow."""
 
+    hass: Any
+    _topics: list[str]
+    _sectors: list[str]
+    _sources: dict[str, dict[str, Any]]
+    _components: dict[str, dict[str, str]]
+    _previous_components: dict[str, dict[str, str]]
+    _queue: list[str]
+    _snapshot: Snapshot | None
 
-def _components_schema(snapshot: Snapshot, default: list[str]) -> vol.Schema:
-    known = set(snapshot.components)
-    return vol.Schema(
-        {
-            vol.Required(CONF_COMPONENTS, default=[d for d in default if d in known]): SelectSelector(
-                SelectSelectorConfig(
-                    options=_component_options(snapshot),
-                    multiple=True,
-                    mode=SelectSelectorMode.LIST,
+    def _init_state(self, options: dict[str, Any] | None = None) -> None:
+        options = options or {}
+        self._topics = list(options.get(CONF_TOPICS, []))
+        self._sectors = list(options.get(CONF_SECTORS, ["pharma"]))
+        self._previous_components = {k: dict(v) for k, v in options.get(CONF_COMPONENTS, {}).items()}
+        self._sources = {}
+        self._components = {}
+        self._queue = []
+        self._snapshot = None
+
+    @property
+    def _lang(self) -> str:
+        return "fr" if (self.hass.config.language or "").startswith("fr") else "nl"
+
+    def _topics_schema(self) -> vol.Schema:
+        return vol.Schema(
+            {
+                vol.Required(CONF_TOPICS, default=self._topics): SelectSelector(
+                    SelectSelectorConfig(
+                        options=list(TOPICS),
+                        multiple=True,
+                        mode=SelectSelectorMode.LIST,
+                        translation_key="topic",
+                    )
                 )
+            }
+        )
+
+    async def _after_topics(self, topics: list[str]) -> ConfigFlowResult:
+        self._topics = [t for t in TOPICS if t in topics]
+        if not self._topics:
+            return self.async_show_form(  # type: ignore[attr-defined]
+                step_id=self._first_step_id,  # type: ignore[attr-defined]
+                data_schema=self._topics_schema(),
+                errors={"base": "no_topics"},
             )
-        }
-    )
+        if "mycarenet" in self._topics:
+            return await self.async_step_sectors()
+        return await self._start_sources()
 
-
-async def _async_fetch(hass: HomeAssistant, provider: Provider) -> Snapshot:
-    return await provider.async_fetch(async_get_clientsession(hass))
-
-
-class HealthStatusConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Add one status page."""
-
-    VERSION = 1
-
-    def __init__(self) -> None:
-        self._provider_type: str | None = None
-        self._params: dict[str, Any] = {}
-        self._provider: Provider | None = None
-        self._snapshot: Snapshot | None = None
-        self._previous: dict[str, Any] = {}
-
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Choose the source."""
+    async def async_step_sectors(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Which MyCareNet sectors."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            preset = PRESETS[user_input[CONF_SOURCE]]
-            self._provider_type = preset["provider"]
-            self._params = dict(preset["params"])
-            return await self.async_step_settings()
-
-        return self.async_show_form(
-            step_id="user",
+            self._sectors = [s for s in SECTORS if s in user_input[CONF_SECTORS]]
+            if self._sectors:
+                return await self._start_sources()
+            errors["base"] = "no_sectors"
+        return self.async_show_form(  # type: ignore[attr-defined]
+            step_id="sectors",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_SOURCE, default="ehealth"): SelectSelector(
+                    vol.Required(CONF_SECTORS, default=self._sectors): SelectSelector(
                         SelectSelectorConfig(
-                            options=list(PRESETS),
-                            translation_key="source",
+                            options=list(SECTORS),
+                            multiple=True,
+                            mode=SelectSelectorMode.LIST,
+                            translation_key="sector",
+                        )
+                    )
+                }
+            ),
+            errors=errors,
+        )
+
+    async def _start_sources(self) -> ConfigFlowResult:
+        self._sources = build_sources(self._topics, self._sectors, self._lang)
+        self._queue = list(self._sources)
+        self._components = {}
+        return await self._next_source()
+
+    async def _next_source(self) -> ConfigFlowResult:
+        if not self._queue:
+            return self._finish()
+        key = self._queue[0]
+        source = self._sources[key]
+        provider = build_provider(source["provider"], source["params"])
+        try:
+            self._snapshot = await provider.async_fetch(async_get_clientsession(self.hass))
+        except ProviderError:
+            self._snapshot = None
+        return self._show_components()
+
+    def _show_components(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
+        key = self._queue[0]
+        title = self._sources[key]["title"]
+        snap = self._snapshot
+        if snap is None:
+            # Unreachable now: offer to retry or to keep the earlier choice.
+            return self.async_show_form(  # type: ignore[attr-defined]
+                step_id="unreachable",
+                data_schema=vol.Schema({vol.Required(CONF_SKIP, default=False): BooleanSelector()}),
+                description_placeholders={"source": title},
+            )
+        previous = self._previous_components.get(key)
+        default = list(previous) if previous is not None else default_selection(key, snap)
+        default = [d for d in default if d in snap.components]
+        return self.async_show_form(  # type: ignore[attr-defined]
+            step_id="components",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_COMPONENTS, default=default): SelectSelector(
+                        SelectSelectorConfig(
+                            options=_component_options(snap),
+                            multiple=True,
                             mode=SelectSelectorMode.LIST,
                         )
                     )
                 }
             ),
-        )
-
-    def _missing_fields(self) -> list[tuple[str, str, Any]]:
-        assert self._provider_type
-        return [f for f in PROVIDERS[self._provider_type].fields if f[0] not in self._params]
-
-    def _settings_schema(self) -> vol.Schema:
-        lang_default = "fr" if (self.hass.config.language or "").startswith("fr") else "nl"
-        schema: dict[Any, Any] = {}
-        for key, kind, default in self._missing_fields():
-            previous = self._previous.get(key)
-            if kind == "url":
-                schema[vol.Required(key, description={"suggested_value": previous or default})] = TextSelector(
-                    TextSelectorConfig(type=TextSelectorType.URL)
-                )
-            elif kind == "language":
-                schema[vol.Required(key, default=previous or lang_default)] = SelectSelector(
-                    SelectSelectorConfig(options=["nl", "fr"], translation_key="language")
-                )
-            elif kind.startswith("select:"):
-                schema[vol.Required(key, default=previous or default)] = SelectSelector(
-                    SelectSelectorConfig(options=kind[7:].split(","), translation_key=key)
-                )
-        return vol.Schema(schema)
-
-    async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Ask what the chosen source still needs (language, URL, sector), then test it."""
-        errors: dict[str, str] = {}
-        if user_input is not None or not self._missing_fields():
-            self._params.update(user_input or {})
-            if "url" in self._params:
-                url = str(self._params["url"]).strip().rstrip("/")
-                if not url.startswith(("http://", "https://")):
-                    url = f"https://{url}"
-                self._params["url"] = url
-            self._provider = build_provider(self._provider_type, self._params)
-            await self.async_set_unique_id(self._provider.unique_id)
-            self._abort_if_unique_id_configured()
-            try:
-                self._snapshot = await _async_fetch(self.hass, self._provider)
-            except ProviderError:
-                errors["base"] = "cannot_connect"
-            else:
-                return await self.async_step_components()
-            # Let the user correct the URL / settings.
-            for key, _kind, _default in PROVIDERS[self._provider_type].fields:
-                if key not in PRESETS_FIXED_KEYS and key in self._params:
-                    self._previous[key] = self._params.pop(key)
-
-        return self.async_show_form(
-            step_id="settings", data_schema=self._settings_schema(), errors=errors
+            description_placeholders={"source": title, "count": str(len(snap.components))},
+            errors=errors,
         )
 
     async def async_step_components(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Pick the services to create sensors for."""
-        assert self._snapshot and self._provider
+        """Which services of the current source."""
+        if user_input is None or self._snapshot is None:
+            return self._show_components()
+        key = self._queue.pop(0)
+        chosen = [c for c in user_input.get(CONF_COMPONENTS, []) if c in self._snapshot.components]
+        self._components[key] = {cid: self._snapshot.components[cid].name for cid in chosen}
+        return await self._next_source()
+
+    async def async_step_unreachable(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """A source did not answer: retry, or keep what was chosen before."""
+        if user_input is not None and user_input.get(CONF_SKIP):
+            key = self._queue.pop(0)
+            self._components[key] = dict(self._previous_components.get(key, {}))
+            return await self._next_source()
+        return await self._next_source()
+
+    def _options_data(self) -> dict[str, Any]:
+        return {
+            CONF_TOPICS: self._topics,
+            CONF_SECTORS: self._sectors,
+            CONF_SOURCES: self._sources,
+            CONF_COMPONENTS: self._components,
+        }
+
+    def _finish(self) -> ConfigFlowResult:
+        raise NotImplementedError
+
+
+class HealthStatusConfigFlow(_SetupSteps, ConfigFlow, domain=DOMAIN):
+    """Add the integration (once)."""
+
+    VERSION = 2
+    _first_step_id = "user"
+
+    def __init__(self) -> None:
+        self._init_state()
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Which topics to follow."""
+        await self.async_set_unique_id(DOMAIN)
+        self._abort_if_unique_id_configured()
         if user_input is not None:
-            title = self._params.get("name") or self._snapshot.title or self._provider.title
-            return self.async_create_entry(
-                title=title,
-                data={CONF_PROVIDER: self._provider_type, CONF_PARAMS: self._params},
-                options={CONF_COMPONENTS: user_input[CONF_COMPONENTS]},
-            )
-        return self.async_show_form(
-            step_id="components",
-            data_schema=_components_schema(self._snapshot, _default_selection(self._snapshot)),
-            description_placeholders={"count": str(len(self._snapshot.components))},
-        )
+            return await self._after_topics(user_input[CONF_TOPICS])
+        return self.async_show_form(step_id="user", data_schema=self._topics_schema())
+
+    def _finish(self) -> ConfigFlowResult:
+        return self.async_create_entry(title="BE Health Status", data={}, options=self._options_data())
 
     @staticmethod
     @callback
@@ -190,31 +246,17 @@ class HealthStatusConfigFlow(ConfigFlow, domain=DOMAIN):
         return HealthStatusOptionsFlow()
 
 
-# Settings that a preset fills in and the user should not be asked again.
-PRESETS_FIXED_KEYS = frozenset({"name"})
+class HealthStatusOptionsFlow(_SetupSteps, OptionsFlowWithReload):
+    """Change topics and services ("Configure")."""
 
-
-class HealthStatusOptionsFlow(OptionsFlowWithReload):
-    """Change which services are monitored."""
+    _first_step_id = "init"
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Which topics to follow."""
         if user_input is not None:
-            return self.async_create_entry(data={CONF_COMPONENTS: user_input[CONF_COMPONENTS]})
+            return await self._after_topics(user_input[CONF_TOPICS])
+        self._init_state(dict(self.config_entry.options))
+        return self.async_show_form(step_id="init", data_schema=self._topics_schema())
 
-        coordinator = getattr(self.config_entry, "runtime_data", None)
-        snapshot: Snapshot | None = getattr(coordinator, "data", None)
-        if snapshot is None:
-            provider = build_provider(
-                self.config_entry.data[CONF_PROVIDER], dict(self.config_entry.data.get(CONF_PARAMS, {}))
-            )
-            try:
-                snapshot = await _async_fetch(self.hass, provider)
-            except ProviderError:
-                return self.async_abort(reason="cannot_connect")
-
-        current = list(self.config_entry.options.get(CONF_COMPONENTS, []))
-        return self.async_show_form(
-            step_id="init",
-            data_schema=_components_schema(snapshot, current),
-            description_placeholders={"count": str(len(snapshot.components))},
-        )
+    def _finish(self) -> ConfigFlowResult:
+        return self.async_create_entry(data=self._options_data())

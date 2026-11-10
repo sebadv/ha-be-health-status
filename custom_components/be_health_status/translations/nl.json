@@ -2,70 +2,87 @@
   "config": {
     "step": {
       "user": {
-        "title": "Statuspagina toevoegen",
-        "description": "Welke dienststatus wil je volgen?",
+        "title": "BE Health Status",
+        "description": "Vink aan wat je wil volgen. In de volgende stappen kies je per onderwerp de diensten.",
         "data": {
-          "source": "Bron"
+          "topics": "Wat wil je volgen?"
         }
       },
-      "settings": {
-        "title": "Instellingen",
-        "description": "Nog enkele gegevens voor deze bron.",
+      "sectors": {
+        "title": "MyCareNet",
+        "description": "Voor welke sector(en) wil je MyCareNet volgen?",
         "data": {
-          "url": "Adres van de statuspagina",
-          "language": "Taal",
-          "sector": "Sector"
-        },
-        "data_description": {
-          "url": "Het adres dat je in de browser opent om de statuspagina te zien."
+          "sectors": "Sectoren"
         }
       },
       "components": {
-        "title": "Diensten",
-        "description": "Deze pagina toont {count} diensten. ▣ is een groep; die krijgt de slechtste status van de diensten erin. Elk aangevinkt item wordt een sensor.",
+        "title": "{source}",
+        "description": "{source} toont {count} diensten. Vink aan welke een sensor moeten worden. ▣ is een groep: die krijgt de slechtste status van de diensten erin.",
         "data": {
-          "components": "Te volgen diensten"
+          "components": "Diensten"
+        }
+      },
+      "unreachable": {
+        "title": "{source} niet bereikbaar",
+        "description": "{source} antwoordde net niet. Klik op verzenden om opnieuw te proberen, of vink het vakje aan om verder te gaan met je eerdere keuze.",
+        "data": {
+          "skip": "Nu overslaan"
         }
       }
     },
     "error": {
-      "cannot_connect": "De statuspagina was niet bereikbaar of niet leesbaar. Controleer het adres en probeer opnieuw."
+      "no_topics": "Vink minstens één onderwerp aan.",
+      "no_sectors": "Vink minstens één sector aan."
     },
     "abort": {
-      "already_configured": "Deze statuspagina is al toegevoegd."
+      "already_configured": "BE Health Status is al ingesteld. Gebruik Configureren om aan te passen wat je volgt."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Gevolgde diensten",
-        "description": "Deze pagina toont {count} diensten. ▣ is een groep; die krijgt de slechtste status van de diensten erin. Elk aangevinkt item wordt een sensor.",
+        "title": "Wat volg je?",
+        "description": "Vink aan wat je wil volgen. In de volgende stappen kies je per onderwerp de diensten.",
         "data": {
-          "components": "Te volgen diensten"
+          "topics": "Wat wil je volgen?"
+        }
+      },
+      "sectors": {
+        "title": "MyCareNet",
+        "description": "Voor welke sector(en) wil je MyCareNet volgen?",
+        "data": {
+          "sectors": "Sectoren"
+        }
+      },
+      "components": {
+        "title": "{source}",
+        "description": "{source} toont {count} diensten. Vink aan welke een sensor moeten worden. ▣ is een groep: die krijgt de slechtste status van de diensten erin.",
+        "data": {
+          "components": "Diensten"
+        }
+      },
+      "unreachable": {
+        "title": "{source} niet bereikbaar",
+        "description": "{source} antwoordde net niet. Klik op verzenden om opnieuw te proberen, of vink het vakje aan om verder te gaan met je eerdere keuze.",
+        "data": {
+          "skip": "Nu overslaan"
         }
       }
     },
-    "abort": {
-      "cannot_connect": "De statuspagina was niet bereikbaar of niet leesbaar. Controleer het adres en probeer opnieuw."
+    "error": {
+      "no_topics": "Vink minstens één onderwerp aan.",
+      "no_sectors": "Vink minstens één sector aan."
     }
   },
   "selector": {
-    "source": {
+    "topic": {
       "options": {
-        "ehealth": "eHealth (status.ehealth.fgov.be)",
+        "ehealth": "eHealth – Recip-e, Vitalink, eHealthBox, …",
         "careconnect": "CareConnect / Corilus",
         "itsme": "itsme",
-        "nmvs": "NMVS – geneesmiddelenverificatie (Arvato)",
-        "rijksregister": "Rijksregister (IBZ)",
-        "mycarenet": "MyCareNet (intermutualistisch dashboard)",
-        "statuspage": "Andere Statuspage.io-pagina",
-        "pagerduty": "Andere PagerDuty-statuspagina"
-      }
-    },
-    "language": {
-      "options": {
-        "nl": "Nederlands",
-        "fr": "Frans"
+        "nmvs": "NMVS – geneesmiddelenverificatie",
+        "rijksregister": "Rijksregister – eID, BAEC",
+        "mycarenet": "MyCareNet – ziekenfondsen"
       }
     },
     "sector": {

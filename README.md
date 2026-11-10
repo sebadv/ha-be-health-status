@@ -36,9 +36,9 @@ Home Assistant:
 | **NMVS** | The medicines verification system you scan boxes against (falsified medicines directive) |
 | **National Register** | The National Register, eID (BELPIC) and civil registry (BAEC) |
 | **MyCareNet** | Communication with the health insurers: chapter IV, member data, eAttest, third-party billing… for pharmacists, doctors, dentists or nurses |
-| **Other status pages** | Many software suppliers use the same kind of status page (Statuspage.io or PagerDuty). You can add those by pasting their address. |
 
-You choose which services you care about. Only following Recip-e and Vitalink? Tick just those two.
+You tick the topics you care about, and within each topic the services. Only following Recip-e and
+Vitalink? Tick eHealth, then just those two.
 
 ## What you see in Home Assistant
 
@@ -53,9 +53,9 @@ Every service you pick shows one of these, in your own language:
 | **Outage** | It doesn't work |
 | **Unknown** | The status page itself gives no (recent) information |
 
-On top of that, each source you add gets:
+Every topic you follow appears as its own device, with on top of that:
 
-- **Overall status** – one line that says how the whole source is doing.
+- **Overall status** – one line that says how that topic is doing.
 - **Problem** – an on/off switch that turns on as soon as something is wrong. Use it to send yourself
   a notification, flash a light, or show a warning on a wall tablet in the pharmacy.
 - **Next maintenance** (itsme) – when the next announced maintenance starts.
@@ -65,12 +65,13 @@ On top of that, each source you add gets:
 1. **Install it.** In Home Assistant open *Settings → Marketplace* (or HACS), choose *Add from link*
    and paste `https://github.com/sebadv/ha-be-health-status`. Install **BE Health Status** and restart
    Home Assistant.
-2. **Add a source.** *Settings → Devices & services → Add integration → BE Health Status*.
-   Pick a source, for example *eHealth*.
-3. **Tick what you want to follow.** You'll see the list of services that source offers. You can change
-   your choice later with the **Configure** button.
+2. **Add it.** *Settings → Devices & services → Add integration → BE Health Status*.
+3. **Tick what you want to follow** – for example eHealth, NMVS and MyCareNet.
+4. **Pick the services of each topic.** You get one short step per topic (for MyCareNet you first choose
+   your sector). Sensible choices are already ticked.
 
-Repeat step 2 for every source you want (eHealth, CareConnect, itsme, …).
+Want to follow something else later? Open the integration and click **Configure**: you go through the
+same steps, with your current choices filled in.
 
 ## Get a message when something breaks
 
@@ -103,8 +104,8 @@ actions:
 | Source | Read from |
 |---|---|
 | eHealth | `status.ehealth.fgov.be/{nl,fr}/api/components/prod` (JSON) — services plus the 18 groups; a group shows the worst status of its services |
-| CareConnect / any PagerDuty page | `/api/services`, `/api/impacted_services`, `/api/post_enums` |
-| itsme / any Statuspage.io page | `/api/v2/summary.json`, including open incidents and scheduled maintenance |
+| CareConnect (PagerDuty status page) | `/api/services`, `/api/impacted_services`, `/api/post_enums` |
+| itsme (Statuspage.io) | `/api/v2/summary.json`, including open incidents and scheduled maintenance |
 | NMVS | `status-nmvs.arvato-systems.de/api/services` (per country, per endpoint); stale data is reported as unknown |
 | National Register | the service status block on `ibz.rrn.fgov.be` |
 | MyCareNet | `dashboard.intermut.be/?sector=…` (pharma, doctors, dentists, nurses) |
@@ -112,9 +113,9 @@ actions:
 - States: `operational`, `maintenance`, `degraded`, `partial_outage`, `major_outage`, `unknown`
   (enum sensor, translated in English, Dutch and French). The source's own wording is in the
   `raw_status` attribute.
-- One device per source; entities: a status sensor per selected service, `Overall status`,
+- Added once; every followed topic (and every MyCareNet sector) is a device with: a status sensor per selected service, `Overall status`,
   `Problem` (binary sensor, attributes `affected` and `incidents`), and `Next maintenance` for
-  Statuspage sources.
+  itsme.
 - Polls every minute, 30 s timeout. No extra Python requirements. Works on Home Assistant 2025.8 and
   newer (uses `probatio` on 2026.11+, `voluptuous` before).
 - Manual install: copy `custom_components/be_health_status` to your `config/custom_components` folder.
