@@ -1,10 +1,9 @@
 name: HACS validation
 
+# Only run on demand (Actions tab → HACS validation → Run workflow).
+# Re-enable push/schedule triggers once the repository is public and stable.
 on:
-  push:
-  pull_request:
-  schedule:
-    - cron: "0 0 * * *"
+  workflow_dispatch:
 
 jobs:
   hacs:
