@@ -17,7 +17,7 @@
           "sector": "Sector"
         },
         "data_description": {
-          "url": "Bijvoorbeeld https://voorbeeld.statuspage.io"
+          "url": "Het adres dat je in de browser opent om de statuspagina te zien."
         }
       },
       "components": {

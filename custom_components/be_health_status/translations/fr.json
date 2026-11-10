@@ -17,7 +17,7 @@
           "sector": "Secteur"
         },
         "data_description": {
-          "url": "Par exemple https://exemple.statuspage.io"
+          "url": "L'adresse que vous ouvrez dans le navigateur pour voir la page de statut."
         }
       },
       "components": {
