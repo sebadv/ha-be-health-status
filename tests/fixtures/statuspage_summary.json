@@ -1,0 +1,14 @@
+{"page":{"id":"q0fny2ph6vy3","name":"itsme","url":"https://itsme.statuspage.io","updated_at":"2026-11-10T12:21:15.771+01:00"},
+"status":{"indicator":"critical","description":"Major System Outage"},
+"components":[
+{"id":"ytx6xs5fd1rt","name":"OIDC private key JWT","status":"operational","group":false,"group_id":"kr8g5l4gb6vj","only_show_if_degraded":false,"showcase":true,"position":1},
+{"id":"05mdtlg1ks21","name":"OIDC Client Secret","status":"degraded_performance","group":false,"group_id":"kr8g5l4gb6vj","only_show_if_degraded":false,"showcase":true,"position":2},
+{"id":"9l23mnqzn6rr","name":"SOAP","status":"major_outage","group":false,"group_id":"kr8g5l4gb6vj","only_show_if_degraded":false,"showcase":true,"position":3},
+{"id":"st9cvs26vbgy","name":"OASIS DSS","status":"under_maintenance","group":false,"group_id":"jrjg55tmb6wq","only_show_if_degraded":false,"showcase":true,"position":1},
+{"id":"f63l79t1f387","name":"CSC","status":"partial_outage","group":false,"group_id":"jrjg55tmb6wq","only_show_if_degraded":false,"showcase":true,"position":2},
+{"id":"37tkz8wmz3z4","name":"E2E Environment","status":"operational","group":false,"group_id":null,"only_show_if_degraded":false,"showcase":false,"position":1},
+{"id":"kr8g5l4gb6vj","name":"Identity","status":"major_outage","group":true,"group_id":null,"only_show_if_degraded":false,"showcase":false,"position":16,"components":["ytx6xs5fd1rt","05mdtlg1ks21","9l23mnqzn6rr"]},
+{"id":"jrjg55tmb6wq","name":"Qualified Electronic Signature","status":"partial_outage","group":true,"group_id":null,"only_show_if_degraded":false,"showcase":false,"position":18,"components":["st9cvs26vbgy","f63l79t1f387"]}
+],
+"incidents":[{"id":"rdckbjsqrjrc","name":"itsme® P1 Incident – major outage (itsme® service(s) unavailable)","status":"monitoring","impact":"critical","shortlink":"https://stspg.io/jzxkcl5kspmj","started_at":"2026-11-10T11:22:51.633+01:00","updated_at":"2026-11-10T12:04:31.565+01:00","components":[{"id":"ytx6xs5fd1rt","name":"OIDC private key JWT","status":"operational"},{"id":"9l23mnqzn6rr","name":"SOAP","status":"major_outage"}]}],
+"scheduled_maintenances":[{"id":"ln0g4f95mt9g","name":"itsme® Maintenance 26R23","status":"scheduled","impact":"maintenance","shortlink":"https://stspg.io/nlmfk2qnxjz5","scheduled_for":"2026-11-16T22:00:00.000+01:00","scheduled_until":"2026-11-17T01:00:00.000+01:00","components":[{"id":"ytx6xs5fd1rt","name":"OIDC private key JWT","status":"operational"},{"id":"st9cvs26vbgy","name":"OASIS DSS","status":"operational"}]},{"id":"6gwygtlnttbj","name":"itsme® Maintenance 26R24","status":"scheduled","impact":"maintenance","shortlink":"https://stspg.io/6zr5nf6h6lw4","scheduled_for":"2026-11-30T22:00:00.000+01:00","scheduled_until":"2026-12-01T01:00:00.000+01:00","components":[{"id":"ytx6xs5fd1rt","name":"OIDC private key JWT","status":"operational"}]}]}

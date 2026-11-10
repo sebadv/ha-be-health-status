@@ -1,0 +1,113 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a status page",
+        "description": "Which service status do you want to follow?",
+        "data": {
+          "source": "Source"
+        }
+      },
+      "settings": {
+        "title": "Settings",
+        "description": "A few details for this source.",
+        "data": {
+          "url": "Address of the status page",
+          "language": "Language",
+          "sector": "Sector"
+        },
+        "data_description": {
+          "url": "For example https://example.statuspage.io"
+        }
+      },
+      "components": {
+        "title": "Services",
+        "description": "This page lists {count} services. ▣ marks a group, whose status is the worst of the services in it. Each selected item becomes a sensor.",
+        "data": {
+          "components": "Services to monitor"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "The status page could not be reached or was not understood. Check the address and try again."
+    },
+    "abort": {
+      "already_configured": "This status page is already added."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Monitored services",
+        "description": "This page lists {count} services. ▣ marks a group, whose status is the worst of the services in it. Each selected item becomes a sensor.",
+        "data": {
+          "components": "Services to monitor"
+        }
+      }
+    },
+    "abort": {
+      "cannot_connect": "The status page could not be reached or was not understood. Check the address and try again."
+    }
+  },
+  "selector": {
+    "source": {
+      "options": {
+        "ehealth": "eHealth (status.ehealth.fgov.be)",
+        "careconnect": "CareConnect / Corilus",
+        "itsme": "itsme",
+        "nmvs": "NMVS – medicines verification (Arvato)",
+        "rijksregister": "National Register (IBZ)",
+        "mycarenet": "MyCareNet (intermutualistic dashboard)",
+        "statuspage": "Other Statuspage.io page",
+        "pagerduty": "Other PagerDuty status page"
+      }
+    },
+    "language": {
+      "options": {
+        "nl": "Dutch",
+        "fr": "French"
+      }
+    },
+    "sector": {
+      "options": {
+        "pharma": "Pharmacists",
+        "doctors": "Doctors",
+        "dentists": "Dentists",
+        "nurses": "Nurses"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "state": {
+          "operational": "Operational",
+          "maintenance": "Maintenance",
+          "degraded": "Degraded performance",
+          "partial_outage": "Partial outage",
+          "major_outage": "Outage",
+          "unknown": "Unknown"
+        }
+      },
+      "overall": {
+        "name": "Overall status",
+        "state": {
+          "operational": "Operational",
+          "maintenance": "Maintenance",
+          "degraded": "Degraded performance",
+          "partial_outage": "Partial outage",
+          "major_outage": "Outage",
+          "unknown": "Unknown"
+        }
+      },
+      "next_maintenance": {
+        "name": "Next maintenance"
+      }
+    },
+    "binary_sensor": {
+      "problem": {
+        "name": "Problem"
+      }
+    }
+  }
+}

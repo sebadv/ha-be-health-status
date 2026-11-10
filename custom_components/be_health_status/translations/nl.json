@@ -1,0 +1,113 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Statuspagina toevoegen",
+        "description": "Welke dienststatus wil je volgen?",
+        "data": {
+          "source": "Bron"
+        }
+      },
+      "settings": {
+        "title": "Instellingen",
+        "description": "Nog enkele gegevens voor deze bron.",
+        "data": {
+          "url": "Adres van de statuspagina",
+          "language": "Taal",
+          "sector": "Sector"
+        },
+        "data_description": {
+          "url": "Bijvoorbeeld https://voorbeeld.statuspage.io"
+        }
+      },
+      "components": {
+        "title": "Diensten",
+        "description": "Deze pagina toont {count} diensten. ▣ is een groep; die krijgt de slechtste status van de diensten erin. Elk aangevinkt item wordt een sensor.",
+        "data": {
+          "components": "Te volgen diensten"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "De statuspagina was niet bereikbaar of niet leesbaar. Controleer het adres en probeer opnieuw."
+    },
+    "abort": {
+      "already_configured": "Deze statuspagina is al toegevoegd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gevolgde diensten",
+        "description": "Deze pagina toont {count} diensten. ▣ is een groep; die krijgt de slechtste status van de diensten erin. Elk aangevinkt item wordt een sensor.",
+        "data": {
+          "components": "Te volgen diensten"
+        }
+      }
+    },
+    "abort": {
+      "cannot_connect": "De statuspagina was niet bereikbaar of niet leesbaar. Controleer het adres en probeer opnieuw."
+    }
+  },
+  "selector": {
+    "source": {
+      "options": {
+        "ehealth": "eHealth (status.ehealth.fgov.be)",
+        "careconnect": "CareConnect / Corilus",
+        "itsme": "itsme",
+        "nmvs": "NMVS – geneesmiddelenverificatie (Arvato)",
+        "rijksregister": "Rijksregister (IBZ)",
+        "mycarenet": "MyCareNet (intermutualistisch dashboard)",
+        "statuspage": "Andere Statuspage.io-pagina",
+        "pagerduty": "Andere PagerDuty-statuspagina"
+      }
+    },
+    "language": {
+      "options": {
+        "nl": "Nederlands",
+        "fr": "Frans"
+      }
+    },
+    "sector": {
+      "options": {
+        "pharma": "Apothekers",
+        "doctors": "Artsen",
+        "dentists": "Tandartsen",
+        "nurses": "Verpleegkundigen"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "state": {
+          "operational": "Operationeel",
+          "maintenance": "Onderhoud",
+          "degraded": "Verminderde werking",
+          "partial_outage": "Gedeeltelijke storing",
+          "major_outage": "Storing",
+          "unknown": "Onbekend"
+        }
+      },
+      "overall": {
+        "name": "Algemene status",
+        "state": {
+          "operational": "Operationeel",
+          "maintenance": "Onderhoud",
+          "degraded": "Verminderde werking",
+          "partial_outage": "Gedeeltelijke storing",
+          "major_outage": "Storing",
+          "unknown": "Onbekend"
+        }
+      },
+      "next_maintenance": {
+        "name": "Volgend onderhoud"
+      }
+    },
+    "binary_sensor": {
+      "problem": {
+        "name": "Probleem"
+      }
+    }
+  }
+}

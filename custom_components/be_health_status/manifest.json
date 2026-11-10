@@ -1,0 +1,14 @@
+{
+  "domain": "be_health_status",
+  "name": "BE Health Status",
+  "codeowners": [
+    "@sebadv"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/sebadv/ha-be-health-status",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/sebadv/ha-be-health-status/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

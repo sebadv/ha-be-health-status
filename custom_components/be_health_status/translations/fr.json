@@ -1,0 +1,113 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ajouter une page de statut",
+        "description": "Quel statut de service voulez-vous suivre ?",
+        "data": {
+          "source": "Source"
+        }
+      },
+      "settings": {
+        "title": "Paramètres",
+        "description": "Quelques informations pour cette source.",
+        "data": {
+          "url": "Adresse de la page de statut",
+          "language": "Langue",
+          "sector": "Secteur"
+        },
+        "data_description": {
+          "url": "Par exemple https://exemple.statuspage.io"
+        }
+      },
+      "components": {
+        "title": "Services",
+        "description": "Cette page liste {count} services. ▣ indique un groupe, dont le statut est le pire de ses services. Chaque élément coché devient un capteur.",
+        "data": {
+          "components": "Services à suivre"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "La page de statut est injoignable ou illisible. Vérifiez l'adresse et réessayez."
+    },
+    "abort": {
+      "already_configured": "Cette page de statut est déjà ajoutée."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Services suivis",
+        "description": "Cette page liste {count} services. ▣ indique un groupe, dont le statut est le pire de ses services. Chaque élément coché devient un capteur.",
+        "data": {
+          "components": "Services à suivre"
+        }
+      }
+    },
+    "abort": {
+      "cannot_connect": "La page de statut est injoignable ou illisible. Vérifiez l'adresse et réessayez."
+    }
+  },
+  "selector": {
+    "source": {
+      "options": {
+        "ehealth": "eHealth (status.ehealth.fgov.be)",
+        "careconnect": "CareConnect / Corilus",
+        "itsme": "itsme",
+        "nmvs": "NMVS – vérification des médicaments (Arvato)",
+        "rijksregister": "Registre national (IBZ)",
+        "mycarenet": "MyCareNet (dashboard intermutualiste)",
+        "statuspage": "Autre page Statuspage.io",
+        "pagerduty": "Autre page de statut PagerDuty"
+      }
+    },
+    "language": {
+      "options": {
+        "nl": "Néerlandais",
+        "fr": "Français"
+      }
+    },
+    "sector": {
+      "options": {
+        "pharma": "Pharmaciens",
+        "doctors": "Médecins",
+        "dentists": "Dentistes",
+        "nurses": "Infirmiers"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "state": {
+          "operational": "Opérationnel",
+          "maintenance": "Maintenance",
+          "degraded": "Performances dégradées",
+          "partial_outage": "Panne partielle",
+          "major_outage": "Panne",
+          "unknown": "Inconnu"
+        }
+      },
+      "overall": {
+        "name": "Statut général",
+        "state": {
+          "operational": "Opérationnel",
+          "maintenance": "Maintenance",
+          "degraded": "Performances dégradées",
+          "partial_outage": "Panne partielle",
+          "major_outage": "Panne",
+          "unknown": "Inconnu"
+        }
+      },
+      "next_maintenance": {
+        "name": "Prochaine maintenance"
+      }
+    },
+    "binary_sensor": {
+      "problem": {
+        "name": "Problème"
+      }
+    }
+  }
+}
