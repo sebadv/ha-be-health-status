@@ -1,74 +1,81 @@
-# BE Health Status – Home Assistant integration 🇧🇪
+# BE Health Status 🇧🇪
+
+**Know right away when a service your pharmacy or practice depends on is down — inside Home Assistant.**
 
 [![hassfest](https://github.com/sebadv/ha-be-health-status/actions/workflows/hassfest.yaml/badge.svg)](https://github.com/sebadv/ha-be-health-status/actions/workflows/hassfest.yaml)
-[![HACS](https://github.com/sebadv/ha-be-health-status/actions/workflows/hacs.yaml/badge.svg)](https://github.com/sebadv/ha-be-health-status/actions/workflows/hacs.yaml)
 [![Tests](https://github.com/sebadv/ha-be-health-status/actions/workflows/tests.yaml/badge.svg)](https://github.com/sebadv/ha-be-health-status/actions/workflows/tests.yaml)
 
-Follow the status of the Belgian healthcare and e-government services that pharmacies,
-doctors and their software depend on — in one integration, with one consistent status.
+> 🇳🇱 **In het kort:** deze integratie houdt in Home Assistant bij of eHealth, CareConnect, itsme,
+> NMVS, het Rijksregister en MyCareNet werken. Je ziet alles op één plek, in gewone woorden
+> ("Operationeel", "Storing", …), en je kan een melding krijgen zodra er iets misloopt.
+>
+> 🇫🇷 **En bref :** cette intégration suit dans Home Assistant l'état d'eHealth, CareConnect, itsme,
+> NMVS, du Registre national et de MyCareNet. Tout au même endroit, en mots simples
+> (« Opérationnel », « Panne », …), avec une alerte dès qu'un service a un problème.
 
-| Source | What you get | How it is read |
-|---|---|---|
-| **eHealth** (status.ehealth.fgov.be) | ~86 services (Recip-e, Vitalink, IAM, eHealthBox, …) and their 18 groups | official JSON API |
-| **CareConnect / Corilus** | CareConnect, Tarification, Medication Monitoring, Helena, Passport, … | PagerDuty status page API |
-| **itsme** | every component and component group, open incidents, announced maintenance | Statuspage.io API |
-| **NMVS** (medicines verification, Arvato Systems) | Belgium/Luxembourg and other Arvato countries, per endpoint | Arvato status API |
-| **National Register** (IBZ) | Rijksregister, BELPIC (eID), BAEC | status block on the IBZ website |
-| **MyCareNet** (intermutualistic dashboard) | per sector (pharmacists, doctors, dentists, nurses): availability and response time of each transaction | intermut.be dashboard |
-| **Any Statuspage.io page** | add it by URL | Statuspage.io API |
-| **Any PagerDuty status page** | add it by URL | PagerDuty status page API |
+## Why you would want this
 
-## Status values
+When an electronic prescription won't load, a patient's insurance data doesn't come through or the
+medicines scanner refuses a box, the first question is always: *is it us, or is it them?*
 
-Every sensor uses the same states, whatever the source calls them:
+Normally you'd check five different status websites, each with its own look and its own words for
+"it's broken". This integration checks them for you, every minute, and shows the answer in
+Home Assistant:
 
-| State | Meaning |
+- 🟢 **Everything works** — no need to call the helpdesk or restart your computer.
+- 🟠 **Something is slow or partly down** — you know which service, and since when.
+- 🔴 **A service is down** — you get a notification on your phone, before the first customer complains.
+
+## What it keeps an eye on
+
+| Service | What it is for |
 |---|---|
-| `operational` | working normally |
-| `maintenance` | (planned) maintenance |
-| `degraded` | slower or minor issues |
-| `partial_outage` | part of the service is down |
-| `major_outage` | down |
-| `unknown` | the page reports no data, or reports stale data |
+| **eHealth** | The government platform behind Recip-e (electronic prescriptions), Vitalink, eHealthBox, login and certificates |
+| **CareConnect / Corilus** | Pharmacy and practice software, including tarification, medication monitoring and Helena |
+| **itsme** | The login and signing app — including planned maintenance, so you know in advance |
+| **NMVS** | The medicines verification system you scan boxes against (falsified medicines directive) |
+| **National Register** | The National Register, eID (BELPIC) and civil registry (BAEC) |
+| **MyCareNet** | Communication with the health insurers: chapter IV, member data, eAttest, third-party billing… for pharmacists, doctors, dentists or nurses |
+| **Other status pages** | Many software suppliers use the same kind of status page (Statuspage.io or PagerDuty). You can add those by pasting their address. |
 
-The text the page itself shows (e.g. *Operationeel*, *Normaal / Normal*, *Available, but degraded*)
-is kept in the `raw_status` attribute. States are translated in the UI (English, Dutch, French).
+You choose which services you care about. Only following Recip-e and Vitalink? Tick just those two.
 
-Groups (eHealth groups, itsme component groups, a MyCareNet table, an NMVS country) get the
-**worst** status of the services in them.
+## What you see in Home Assistant
 
-## Entities
+Every service you pick shows one of these, in your own language:
 
-Each status page you add becomes one device with:
+| You see | It means |
+|---|---|
+| **Operational** | Working normally |
+| **Maintenance** | Planned or ongoing maintenance |
+| **Degraded performance** | Working, but slow or with minor problems |
+| **Partial outage** | Part of it doesn't work |
+| **Outage** | It doesn't work |
+| **Unknown** | The status page itself gives no (recent) information |
 
-- a **status sensor** for every service you selected
-- **Overall status**: the worst status of the selected services
-- **Problem** (binary sensor): on when a selected service is not operational or an incident is open —
-  handy for notifications; the `affected` and `incidents` attributes say what is wrong
-- **Next maintenance** (Statuspage pages such as itsme): when the next announced maintenance starts
+On top of that, each source you add gets:
 
-## Installation
+- **Overall status** – one line that says how the whole source is doing.
+- **Problem** – an on/off switch that turns on as soon as something is wrong. Use it to send yourself
+  a notification, flash a light, or show a warning on a wall tablet in the pharmacy.
+- **Next maintenance** (itsme) – when the next announced maintenance starts.
 
-### Marketplace / HACS
+## Getting started
 
-Add this repository as a custom repository (category *Integration*), install **BE Health Status**
-and restart Home Assistant.
+1. **Install it.** In Home Assistant open *Settings → Marketplace* (or HACS), choose *Add from link*
+   and paste `https://github.com/sebadv/ha-be-health-status`. Install **BE Health Status** and restart
+   Home Assistant.
+2. **Add a source.** *Settings → Devices & services → Add integration → BE Health Status*.
+   Pick a source, for example *eHealth*.
+3. **Tick what you want to follow.** You'll see the list of services that source offers. You can change
+   your choice later with the **Configure** button.
 
-### Manual
+Repeat step 2 for every source you want (eHealth, CareConnect, itsme, …).
 
-Copy `custom_components/be_health_status` into your `config/custom_components` folder and restart.
+## Get a message when something breaks
 
-## Setup
-
-**Settings → Devices & services → Add integration → BE Health Status**
-
-1. Choose the source.
-2. Fill in what it needs (language, sector, or the address for "other" pages).
-3. Tick the services to monitor. Use **Configure** on the entry later to change the selection.
-
-Add the integration once per source (and once per sector for MyCareNet).
-
-## Example: notify on a problem
+This automation sends a notification to your phone when eHealth has a problem, and tells you which
+service it is:
 
 ```yaml
 triggers:
@@ -78,14 +85,38 @@ triggers:
 actions:
   - action: notify.notify
     data:
-      title: eHealth problem
+      title: eHealth has a problem
       message: "{{ state_attr('binary_sensor.ehealth_problem', 'affected') | join(', ') }}"
 ```
 
-## Notes
+## Good to know
 
-- Polling interval is one minute; requests time out after 30 seconds.
-- The National Register and MyCareNet sources read HTML pages; if those sites are redesigned the
-  source may stop working until the parser is updated. All other sources use JSON APIs.
-- eHealth only publishes status code 1 (operational) in normal operation; other states are recognised
-  from the localised status text.
+- The integration only **reads** public status pages. It never logs in anywhere and needs no passwords.
+- It reports what the service providers publish. If they haven't noticed a problem yet, neither has
+  this integration.
+- The National Register and MyCareNet don't offer a proper data feed, so the integration reads their
+  web page. If they redesign it, that source may need an update.
+
+<details>
+<summary><b>Technical details</b></summary>
+
+| Source | Read from |
+|---|---|
+| eHealth | `status.ehealth.fgov.be/{nl,fr}/api/components/prod` (JSON) — services plus the 18 groups; a group shows the worst status of its services |
+| CareConnect / any PagerDuty page | `/api/services`, `/api/impacted_services`, `/api/post_enums` |
+| itsme / any Statuspage.io page | `/api/v2/summary.json`, including open incidents and scheduled maintenance |
+| NMVS | `status-nmvs.arvato-systems.de/api/services` (per country, per endpoint); stale data is reported as unknown |
+| National Register | the service status block on `ibz.rrn.fgov.be` |
+| MyCareNet | `dashboard.intermut.be/?sector=…` (pharma, doctors, dentists, nurses) |
+
+- States: `operational`, `maintenance`, `degraded`, `partial_outage`, `major_outage`, `unknown`
+  (enum sensor, translated in English, Dutch and French). The source's own wording is in the
+  `raw_status` attribute.
+- One device per source; entities: a status sensor per selected service, `Overall status`,
+  `Problem` (binary sensor, attributes `affected` and `incidents`), and `Next maintenance` for
+  Statuspage sources.
+- Polls every minute, 30 s timeout. No extra Python requirements. Works on Home Assistant 2025.8 and
+  newer (uses `probatio` on 2026.11+, `voluptuous` before).
+- Manual install: copy `custom_components/be_health_status` to your `config/custom_components` folder.
+
+</details>
