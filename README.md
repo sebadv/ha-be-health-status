@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
+    <img src="docs/logo.png" alt="BE Health Status" height="96">
+  </picture>
+</p>
+
 # BE Health Status 🇧🇪
 
 **Know right away when a service your pharmacy or practice depends on is down — inside Home Assistant.**
