@@ -1,0 +1,31 @@
+{
+  "entity": {
+    "sensor": {
+      "status": {
+        "default": "mdi:help-circle-outline",
+        "state": {
+          "operational": "mdi:check-circle",
+          "maintenance": "mdi:wrench-clock",
+          "degraded": "mdi:speedometer-slow",
+          "partial_outage": "mdi:alert",
+          "major_outage": "mdi:close-circle",
+          "unknown": "mdi:help-circle-outline"
+        }
+      },
+      "overall": {
+        "default": "mdi:heart-pulse",
+        "state": {
+          "operational": "mdi:check-circle",
+          "maintenance": "mdi:wrench-clock",
+          "degraded": "mdi:speedometer-slow",
+          "partial_outage": "mdi:alert",
+          "major_outage": "mdi:close-circle",
+          "unknown": "mdi:help-circle-outline"
+        }
+      },
+      "next_maintenance": {
+        "default": "mdi:calendar-clock"
+      }
+    }
+  }
+}

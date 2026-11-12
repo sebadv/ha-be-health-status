@@ -80,6 +80,16 @@ Every topic you follow appears as its own device, with on top of that:
 Want to follow something else later? Open the integration and click **Configure**: you go through the
 same steps, with your current choices filled in.
 
+## Removing the integration
+
+1. *Settings → Devices & services → BE Health Status* → the three dots → **Delete**.
+   All its devices and sensors are removed with it.
+2. To remove the files too: *Settings → Marketplace* (or HACS) → **BE Health Status** → **Remove**,
+   then restart Home Assistant.
+
+Want to stop following just one topic instead? Use **Configure** and untick it: its device and sensors
+are cleaned up automatically.
+
 ## Get a message when something breaks
 
 This automation sends a notification to your phone when eHealth has a problem, and tells you which
@@ -123,7 +133,10 @@ actions:
 - Added once; every followed topic (and every MyCareNet sector) is a device with: a status sensor per selected service, `Overall status`,
   `Problem` (binary sensor, attributes `affected` and `incidents`), and `Next maintenance` for
   itsme.
-- Polls every minute, 30 s timeout. No extra Python requirements. Works on Home Assistant 2025.8 and
+- Polls every minute, 30 s timeout. When none of the sources answers at start-up, Home Assistant retries
+  the setup later; when only some fail, the others keep working.
+- *Download diagnostics* on the integration shows the raw answer of every source.
+- No extra Python requirements. Works on Home Assistant 2025.8 and
   newer (uses `probatio` on 2026.11+, `voluptuous` before).
 - Manual install: copy `custom_components/be_health_status` to your `config/custom_components` folder.
 

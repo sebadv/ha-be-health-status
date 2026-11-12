@@ -18,7 +18,14 @@ ROOT = Path(__file__).resolve().parents[1]
 PKG_DIR = ROOT / "custom_components" / "be_health_status"
 FIXTURES = Path(__file__).parent / "fixtures"
 
-if "aiohttp" not in sys.modules:
+try:  # With Home Assistant installed (CI), load the real integration package.
+    import homeassistant  # noqa: F401
+
+    HAS_HA = True
+except ImportError:
+    HAS_HA = False
+
+if not HAS_HA and "aiohttp" not in sys.modules:
     try:
         import aiohttp  # noqa: F401
     except ImportError:
@@ -37,14 +44,22 @@ if "aiohttp" not in sys.modules:
         sys.modules["aiohttp"] = stub
 
 sys.path.insert(0, str(ROOT))
-for name, path in (
-    ("custom_components", ROOT / "custom_components"),
-    ("custom_components.be_health_status", PKG_DIR),
-):
-    if name not in sys.modules:
-        mod = types.ModuleType(name)
-        mod.__path__ = [str(path)]
-        sys.modules[name] = mod
+if not HAS_HA:
+    for name, path in (
+        ("custom_components", ROOT / "custom_components"),
+        ("custom_components.be_health_status", PKG_DIR),
+    ):
+        if name not in sys.modules:
+            mod = types.ModuleType(name)
+            mod.__path__ = [str(path)]
+            sys.modules[name] = mod
+else:
+    # pytest-homeassistant-custom-component registers itself as a pytest plugin.
+
+    @pytest.fixture(autouse=True)
+    def auto_enable_custom_integrations(enable_custom_integrations):
+        """Let Home Assistant load custom_components/be_health_status in every test."""
+        return
 
 
 @pytest.fixture

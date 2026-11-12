@@ -6,6 +6,7 @@ import asyncio
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
 from .const import CONF_COMPONENTS, CONF_SECTORS, CONF_SOURCES, CONF_TOPICS, DOMAIN
@@ -31,6 +32,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: HealthStatusConfigEntry)
             components=dict(components.get(key, {})),
         )
     await asyncio.gather(*(r.coordinator.async_refresh() for r in runtime.values()))
+    if runtime and not any(r.coordinator.last_update_success for r in runtime.values()):
+        # Nothing answered at all: most likely no internet. Let Home Assistant retry.
+        raise ConfigEntryNotReady(
+            "; ".join(f"{r.title}: {r.coordinator.last_exception}" for r in runtime.values())
+        )
     entry.runtime_data = runtime
 
     # Remove devices of sources that are no longer followed.
