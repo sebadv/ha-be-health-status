@@ -6,7 +6,6 @@ coloured dot and a tooltip on every page.
 
 from __future__ import annotations
 
-from datetime import timedelta
 
 import aiohttp
 
@@ -66,7 +65,6 @@ class IbzProvider(Provider):
     """Rijksregister / Registre national."""
 
     type = "ibz"
-    scan_interval = timedelta(minutes=5)
 
     @property
     def lang(self) -> str:

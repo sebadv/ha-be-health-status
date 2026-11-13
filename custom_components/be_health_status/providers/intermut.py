@@ -10,7 +10,6 @@ import re
 import unicodedata
 from typing import Any
 
-from datetime import timedelta
 
 import aiohttp
 
@@ -94,7 +93,6 @@ class IntermutProvider(Provider):
     """MyCareNet (intermutualistisch dashboard), one sector."""
 
     type = "intermut"
-    scan_interval = timedelta(minutes=5)
     has_maintenance = True
 
     def __init__(self, params: dict[str, Any]) -> None:
@@ -119,7 +117,7 @@ class IntermutProvider(Provider):
         try:
             # MyCareNet (CIN-NIC) announces its maintenance on the eHealth status site.
             snapshot.events = await async_fetch_events(
-                session, self.lang, partners={"CIN-NIC"}, incidents=False
+                session, self.lang, partners={"CIN-NIC"}, incidents=False, ttl=self.events_ttl
             )
         except ProviderError:
             snapshot.events = self._last_events

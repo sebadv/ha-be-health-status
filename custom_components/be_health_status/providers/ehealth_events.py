@@ -30,7 +30,7 @@ from .htmltree import parse_html
 
 SITE = "https://www.status.ehealth.fgov.be"
 TZ = ZoneInfo("Europe/Brussels")
-EVENTS_TTL = 600  # seconds
+EVENTS_TTL = 600  # seconds; the default, the user can change it under Configure
 #: An incident not marked solved after this long is assumed forgotten, not ongoing.
 INCIDENT_MAX_AGE = timedelta(days=7)
 _CLOSED_STATES = {"solved", "resolved", "closed", "opgelost", "résolu"}
@@ -163,9 +163,9 @@ def parse_incidents(rss: str, now: datetime) -> list[Event]:
 _cache: dict[str, tuple[float, Any]] = {}
 
 
-async def _cached_text(session: aiohttp.ClientSession, url: str) -> str:
+async def _cached_text(session: aiohttp.ClientSession, url: str, ttl: float) -> str:
     hit = _cache.get(url)
-    if hit and time.monotonic() - hit[0] < EVENTS_TTL:
+    if hit and time.monotonic() - hit[0] < ttl:
         return hit[1]
     text = await get_text(session, url)
     _cache[url] = (time.monotonic(), text)
@@ -178,11 +178,12 @@ async def async_fetch_events(
     *,
     partners: set[str] | None = None,
     incidents: bool = True,
+    ttl: float = EVENTS_TTL,
 ) -> list[Event]:
     """Interventions (and incidents) for one language. Raises ProviderError on failure."""
     lang = "fr" if lang == "fr" else "nl"
-    events = parse_interventions(await _cached_text(session, f"{SITE}/{lang}"), partners)
+    events = parse_interventions(await _cached_text(session, f"{SITE}/{lang}", ttl), partners)
     if incidents:
-        rss = await _cached_text(session, f"{SITE}/{lang}/rss.xml")
+        rss = await _cached_text(session, f"{SITE}/{lang}/rss.xml", ttl)
         events += parse_incidents(rss, datetime.now(TZ))
     return events

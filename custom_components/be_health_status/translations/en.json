@@ -41,6 +41,14 @@
   "options": {
     "step": {
       "init": {
+        "title": "BE Health Status",
+        "description": "What do you want to change?",
+        "menu_options": {
+          "topics": "What I follow",
+          "polling": "How often it checks"
+        }
+      },
+      "topics": {
         "title": "What do you follow?",
         "description": "Tick everything you want to follow. In the next steps you choose the services of each.",
         "data": {
@@ -66,6 +74,28 @@
         "description": "{source} did not answer just now. Submit to try again, or tick the box to continue and keep your earlier choice for it.",
         "data": {
           "skip": "Skip for now"
+        }
+      },
+      "polling": {
+        "title": "How often to check",
+        "description": "Minutes between two checks, per topic (at least 1). The defaults are the recommended values: lower values give faster updates but load the providers' servers more.",
+        "data": {
+          "ehealth": "eHealth",
+          "careconnect": "CareConnect",
+          "itsme": "itsme",
+          "nmvs": "NMVS",
+          "rijksregister": "National Register",
+          "mycarenet": "MyCareNet",
+          "calendar": "eHealth maintenance and incidents"
+        },
+        "data_description": {
+          "ehealth": "Recommended: 2 min.",
+          "careconnect": "Recommended: 2 min.",
+          "itsme": "Recommended: 2 min.",
+          "nmvs": "Recommended: 2 min.",
+          "rijksregister": "Recommended: 5 min.",
+          "mycarenet": "Recommended: 5 min.",
+          "calendar": "The maintenance calendar and incident feed of the eHealth status site (used by eHealth and MyCareNet). Recommended: 10 min."
         }
       }
     },

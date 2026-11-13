@@ -41,6 +41,14 @@
   "options": {
     "step": {
       "init": {
+        "title": "BE Health Status",
+        "description": "Que voulez-vous modifier ?",
+        "menu_options": {
+          "topics": "Ce que je suis",
+          "polling": "Fréquence des vérifications"
+        }
+      },
+      "topics": {
         "title": "Que suivez-vous ?",
         "description": "Cochez tout ce que vous voulez suivre. Ensuite, vous choisissez les services de chaque sujet.",
         "data": {
@@ -66,6 +74,28 @@
         "description": "{source} n'a pas répondu. Validez pour réessayer, ou cochez la case pour continuer en gardant votre choix précédent.",
         "data": {
           "skip": "Passer pour l'instant"
+        }
+      },
+      "polling": {
+        "title": "Fréquence des vérifications",
+        "description": "Minutes entre deux vérifications, par sujet (au moins 1). Les valeurs par défaut sont les valeurs recommandées : plus bas donne des mises à jour plus rapides mais charge davantage les serveurs des fournisseurs.",
+        "data": {
+          "ehealth": "eHealth",
+          "careconnect": "CareConnect",
+          "itsme": "itsme",
+          "nmvs": "NMVS",
+          "rijksregister": "Registre national",
+          "mycarenet": "MyCareNet",
+          "calendar": "Maintenance et incidents eHealth"
+        },
+        "data_description": {
+          "ehealth": "Recommandé : 2 min.",
+          "careconnect": "Recommandé : 2 min.",
+          "itsme": "Recommandé : 2 min.",
+          "nmvs": "Recommandé : 2 min.",
+          "rijksregister": "Recommandé : 5 min.",
+          "mycarenet": "Recommandé : 5 min.",
+          "calendar": "Le calendrier de maintenance et le flux d'incidents du site de statut eHealth (utilisés par eHealth et MyCareNet). Recommandé : 10 min."
         }
       }
     },

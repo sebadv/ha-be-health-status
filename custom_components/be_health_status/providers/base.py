@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, ClassVar
 
 import aiohttp
@@ -24,13 +24,13 @@ class Provider(ABC):
 
     #: Stable identifier stored in the config entry.
     type: ClassVar[str]
-    #: How often to poll. JSON APIs are cheap; HTML pages are polled less often.
-    scan_interval: ClassVar[timedelta] = timedelta(minutes=2)
     #: Whether the source announces (planned) maintenance.
     has_maintenance: ClassVar[bool] = False
 
     def __init__(self, params: dict[str, Any]) -> None:
         self.params = params
+        #: How long the maintenance calendar may be reused, in seconds.
+        self.events_ttl: float = 600
 
     @property
     def url(self) -> str | None:

@@ -6,6 +6,9 @@ through the same steps:
 1. ``user`` / ``init``: which topics (eHealth, CareConnect, itsme, ...)
 2. ``sectors``: which MyCareNet sectors (only when MyCareNet is ticked)
 3. ``components``: once per source, which of its services become sensors
+
+"Configure" first shows a menu: change those choices, or the polling
+interval of each topic (``polling``).
 """
 
 from __future__ import annotations
@@ -27,13 +30,27 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
 )
 
-from .const import CONF_COMPONENTS, CONF_SECTORS, CONF_SOURCES, CONF_TOPICS, DOMAIN
+from .const import (
+    CALENDAR,
+    CONF_COMPONENTS,
+    CONF_SCAN_INTERVALS,
+    CONF_SECTORS,
+    CONF_SOURCES,
+    CONF_TOPICS,
+    DOMAIN,
+    MAX_SCAN_MINUTES,
+    MIN_SCAN_MINUTES,
+)
+from .coordinator import scan_minutes
 from .models import Snapshot
 from .providers import (
     SECTORS,
@@ -73,6 +90,7 @@ class _SetupSteps:
     _sources: dict[str, dict[str, Any]]
     _components: dict[str, dict[str, str]]
     _previous_components: dict[str, dict[str, str]]
+    _scan_intervals: dict[str, int]
     _queue: list[str]
     _snapshot: Snapshot | None
 
@@ -81,6 +99,7 @@ class _SetupSteps:
         self._topics = list(options.get(CONF_TOPICS, []))
         self._sectors = list(options.get(CONF_SECTORS, ["pharma"]))
         self._previous_components = {k: dict(v) for k, v in options.get(CONF_COMPONENTS, {}).items()}
+        self._scan_intervals = dict(options.get(CONF_SCAN_INTERVALS, {}))
         self._sources = {}
         self._components = {}
         self._queue = []
@@ -213,6 +232,7 @@ class _SetupSteps:
             CONF_SECTORS: self._sectors,
             CONF_SOURCES: self._sources,
             CONF_COMPONENTS: self._components,
+            CONF_SCAN_INTERVALS: self._scan_intervals,
         }
 
     def _finish(self) -> ConfigFlowResult:
@@ -245,17 +265,54 @@ class HealthStatusConfigFlow(_SetupSteps, ConfigFlow, domain=DOMAIN):
         return HealthStatusOptionsFlow()
 
 
-class HealthStatusOptionsFlow(_SetupSteps, OptionsFlowWithReload):
-    """Change topics and services ("Configure")."""
+def polling_fields(topics: list[str]) -> list[str]:
+    """Which intervals can be set: one per followed topic, plus the eHealth calendar."""
+    fields = [t for t in TOPICS if t in topics]
+    if "ehealth" in fields or "mycarenet" in fields:
+        fields.append(CALENDAR)
+    return fields
 
-    _first_step_id = "init"
+
+class HealthStatusOptionsFlow(_SetupSteps, OptionsFlowWithReload):
+    """Change topics and services, or the polling interval ("Configure")."""
+
+    _first_step_id = "topics"
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """What to change."""
+        self._init_state(dict(self.config_entry.options))
+        return self.async_show_menu(step_id="init", menu_options=["topics", "polling"])
+
+    async def async_step_topics(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Which topics to follow."""
         if user_input is not None:
             return await self._after_topics(user_input[CONF_TOPICS])
-        self._init_state(dict(self.config_entry.options))
-        return self.async_show_form(step_id="init", data_schema=self._topics_schema())
+        return self.async_show_form(step_id="topics", data_schema=self._topics_schema())
+
+    async def async_step_polling(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """How often each topic is checked, in minutes (at least 1)."""
+        options = dict(self.config_entry.options)
+        fields = polling_fields(options.get(CONF_TOPICS, []))
+        if user_input is not None:
+            intervals = dict(options.get(CONF_SCAN_INTERVALS, {}))
+            for name in fields:
+                if name in user_input:
+                    minutes = int(user_input[name])
+                    intervals[name] = max(MIN_SCAN_MINUTES, min(MAX_SCAN_MINUTES, minutes))
+            return self.async_create_entry(data={**options, CONF_SCAN_INTERVALS: intervals})
+        selector = NumberSelector(
+            NumberSelectorConfig(
+                min=MIN_SCAN_MINUTES,
+                max=MAX_SCAN_MINUTES,
+                step=1,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="min",
+            )
+        )
+        schema = vol.Schema(
+            {vol.Required(name, default=scan_minutes(options, name)): selector for name in fields}
+        )
+        return self.async_show_form(step_id="polling", data_schema=schema)
 
     def _finish(self) -> ConfigFlowResult:
         return self.async_create_entry(data=self._options_data())

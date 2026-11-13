@@ -144,7 +144,7 @@ class EHealthProvider(Provider):
     async def async_fetch(self, session: aiohttp.ClientSession) -> Snapshot:
         snapshot = parse_ehealth(await get_json(session, API_URL.format(lang=self.lang)), self.lang)
         try:
-            snapshot.events = await async_fetch_events(session, self.lang)
+            snapshot.events = await async_fetch_events(session, self.lang, ttl=self.events_ttl)
         except ProviderError as err:
             # The service statuses are what matters; keep them when the calendar fails.
             _LOGGER.debug("eHealth interventions/incidents unavailable: %s", err)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -12,7 +13,7 @@ pytest.importorskip("pytest_homeassistant_custom_component")
 from homeassistant import config_entries  # noqa: E402
 from homeassistant.config_entries import ConfigEntryState  # noqa: E402
 from homeassistant.core import HomeAssistant  # noqa: E402
-from homeassistant.data_entry_flow import FlowResultType  # noqa: E402
+from homeassistant.data_entry_flow import FlowResultType, InvalidData  # noqa: E402
 from homeassistant.helpers import device_registry as dr  # noqa: E402
 from homeassistant.helpers import entity_registry as er  # noqa: E402
 from pytest_homeassistant_custom_component.common import MockConfigEntry  # noqa: E402
@@ -172,7 +173,9 @@ async def test_options_flow_removes_untracked_topic(hass: HomeAssistant) -> None
     assert registry.async_get_entity_id("sensor", DOMAIN, "itsme_overall")
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["step_id"] == "init"
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "topics"})
+    assert result["step_id"] == "topics"
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"topics": ["ehealth"]})
     assert result["step_id"] == "components"
     # previous choice is pre-filled; keep only Recip-e
@@ -185,6 +188,41 @@ async def test_options_flow_removes_untracked_topic(hass: HomeAssistant) -> None
     assert registry.async_get_entity_id("sensor", DOMAIN, f"ehealth_c_{RECIP}")
     devices = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
     assert {d.name for d in devices} == {"eHealth"}
+
+
+async def test_polling_interval_is_configurable(hass: HomeAssistant) -> None:
+    entry = await _setup_via_flow(hass)
+    coordinator = entry.runtime_data["ehealth"].coordinator
+    assert coordinator.update_interval == timedelta(minutes=2)  # recommended default
+    assert coordinator.provider.events_ttl == 600
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "polling"})
+    assert result["step_id"] == "polling"
+    fields = [str(key) for key in result["data_schema"].schema]
+    assert fields == ["ehealth", "itsme", "calendar"]  # only what is followed
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"ehealth": 1, "itsme": 15, "calendar": 3}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    assert entry.options["scan_intervals"] == {"ehealth": 1, "itsme": 15, "calendar": 3}
+    assert set(entry.options["components"]) == {"ehealth", "itsme"}  # choices kept
+    runtime = entry.runtime_data
+    assert runtime["ehealth"].coordinator.update_interval == timedelta(minutes=1)
+    assert runtime["itsme"].coordinator.update_interval == timedelta(minutes=15)
+    assert runtime["ehealth"].coordinator.provider.events_ttl == 180
+
+
+async def test_polling_interval_has_a_minimum(hass: HomeAssistant) -> None:
+    entry = await _setup_via_flow(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "polling"})
+    with pytest.raises(InvalidData):  # rejected by the form: below 1 minute
+        await hass.config_entries.options.async_configure(
+            result["flow_id"], {"ehealth": 0, "itsme": 2, "calendar": 10}
+        )
 
 
 async def test_one_failing_source_does_not_block_others(hass: HomeAssistant, snapshots) -> None:

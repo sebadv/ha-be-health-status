@@ -26,7 +26,7 @@ When an electronic prescription won't load, a patient's insurance data doesn't c
 medicines scanner refuses a box, the first question is always: *is it us, or is it them?*
 
 Normally you'd check five different status websites, each with its own look and its own words for
-"it's broken". This integration checks them for you, every minute, and shows the answer in
+"it's broken". This integration checks them for you, every few minutes, and shows the answer in
 Home Assistant:
 
 - 🟢 **Everything works** — no need to call the helpdesk or restart your computer.
@@ -85,8 +85,11 @@ message under *Settings → Repairs*. It disappears by itself when the source an
 4. **Pick the services of each topic.** You get one short step per topic (for MyCareNet you first choose
    your sector). Sensible choices are already ticked.
 
-Want to follow something else later? Open the integration and click **Configure**: you go through the
-same steps, with your current choices filled in.
+Want to follow something else later? Open the integration and click **Configure** → **What I follow**:
+you go through the same steps, with your current choices filled in.
+
+Want updates faster or less often? **Configure** → **How often it checks** lets you set the number of
+minutes per topic (at least 1). The values already filled in are the recommended ones.
 
 ## Removing the integration
 
@@ -118,8 +121,9 @@ actions:
 ## Good to know
 
 - The integration only **reads** public status pages. It never logs in anywhere and needs no passwords.
-- It checks every 2 minutes (every 5 minutes for the National Register and MyCareNet web pages, every
-  10 minutes for the eHealth maintenance calendar), so it stays light on the providers' servers.
+- By default it checks every 2 minutes (every 5 minutes for the National Register and MyCareNet web
+  pages, every 10 minutes for the eHealth maintenance calendar), so it stays light on the providers'
+  servers. You can change this under **Configure** (minimum 1 minute).
 - It reports what the service providers publish. If they haven't noticed a problem yet, neither has
   this integration.
 - The National Register and MyCareNet don't offer a proper data feed, so the integration reads their
@@ -143,7 +147,7 @@ actions:
 - Added once; every followed topic (and every MyCareNet sector) is a device with: a status sensor per selected service, `Overall status`,
   `Problem` (binary sensor, attributes `affected` and `incidents`), and `Next maintenance` for
   eHealth, MyCareNet and itsme.
-- Polls every 2 minutes (5 for HTML pages), 30 s timeout; repair issue after 2 hours of failures. When none of the sources answers at start-up, Home Assistant retries
+- Polls every 2 minutes by default (5 for HTML pages, 10 for the eHealth calendar), configurable per topic in the options flow (1–1440 min); 30 s timeout; repair issue after 2 hours of failures. When none of the sources answers at start-up, Home Assistant retries
   the setup later; when only some fail, the others keep working.
 - *Download diagnostics* on the integration shows the raw answer of every source.
 - No extra Python requirements. Works on Home Assistant 2025.8 and

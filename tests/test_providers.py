@@ -366,3 +366,10 @@ def test_event_timing():
     e = Event(id="x", name="x", kind="maintenance", starts_at=now - timedelta(hours=1), ends_at=now + timedelta(hours=1))
     assert e.is_ongoing(now) and not e.is_over(now)
     assert e.is_over(now + timedelta(hours=2))
+
+
+def test_topic_of() -> None:
+    from custom_components.be_health_status.providers import topic_of
+
+    assert topic_of("mycarenet_pharma") == "mycarenet"
+    assert topic_of("ehealth") == "ehealth"

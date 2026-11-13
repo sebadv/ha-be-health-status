@@ -41,6 +41,14 @@
   "options": {
     "step": {
       "init": {
+        "title": "BE Health Status",
+        "description": "Wat wil je aanpassen?",
+        "menu_options": {
+          "topics": "Wat ik volg",
+          "polling": "Hoe vaak er gecontroleerd wordt"
+        }
+      },
+      "topics": {
         "title": "Wat volg je?",
         "description": "Vink aan wat je wil volgen. In de volgende stappen kies je per onderwerp de diensten.",
         "data": {
@@ -66,6 +74,28 @@
         "description": "{source} antwoordde net niet. Klik op verzenden om opnieuw te proberen, of vink het vakje aan om verder te gaan met je eerdere keuze.",
         "data": {
           "skip": "Nu overslaan"
+        }
+      },
+      "polling": {
+        "title": "Hoe vaak controleren",
+        "description": "Aantal minuten tussen twee controles, per onderwerp (minstens 1). De standaardwaarden zijn de aanbevolen waarden: lager geeft snellere updates maar belast de servers van de aanbieders meer.",
+        "data": {
+          "ehealth": "eHealth",
+          "careconnect": "CareConnect",
+          "itsme": "itsme",
+          "nmvs": "NMVS",
+          "rijksregister": "Rijksregister",
+          "mycarenet": "MyCareNet",
+          "calendar": "eHealth-onderhoud en -incidenten"
+        },
+        "data_description": {
+          "ehealth": "Aanbevolen: 2 min.",
+          "careconnect": "Aanbevolen: 2 min.",
+          "itsme": "Aanbevolen: 2 min.",
+          "nmvs": "Aanbevolen: 2 min.",
+          "rijksregister": "Aanbevolen: 5 min.",
+          "mycarenet": "Aanbevolen: 5 min.",
+          "calendar": "De onderhoudskalender en incidentenfeed van de eHealth-statussite (gebruikt door eHealth en MyCareNet). Aanbevolen: 10 min."
         }
       }
     },

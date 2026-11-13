@@ -78,6 +78,11 @@ def build_sources(topics: list[str], sectors: list[str], lang: str) -> dict[str,
     return sources
 
 
+def topic_of(source_key: str) -> str:
+    """The topic a source belongs to: "mycarenet_pharma" -> "mycarenet"."""
+    return source_key.split("_", 1)[0]
+
+
 def default_selection(source_key: str, snapshot: Snapshot) -> list[str]:
     """Sensible pre-selection the first time a source is set up."""
     comps = list(snapshot.components.values())
@@ -136,4 +141,5 @@ __all__ = [
     "build_sources",
     "default_selection",
     "ordered_for_display",
+    "topic_of",
 ]
