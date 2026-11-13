@@ -8,7 +8,12 @@ on:
     branches: [main]
     paths:
       - custom_components/be_health_status/manifest.json
+      - CHANGELOG.md
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Only update the notes of this existing release (e.g. v0.4.0)"
+        required: false
 
 permissions:
   contents: write
@@ -22,16 +27,29 @@ jobs:
       - name: Read version
         id: version
         run: |
-          version=$(jq -r .version custom_components/be_health_status/manifest.json)
-          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            version=$(jq -r .version custom_components/be_health_status/manifest.json)
+            echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Create release if it does not exist yet
+      - name: Release notes from CHANGELOG.md
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          # The section "## X.Y.Z" up to the next "## ".
+          awk -v v="## ${TAG#v}" '$0==v{on=1;next} /^## /{on=0} on' CHANGELOG.md | sed '/./,$!d' > notes.md
+          test -s notes.md || { echo "CHANGELOG.md has no section for ${TAG#v}"; exit 1; }
+          cat notes.md
+
+      - name: Create or update the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists"
+            gh release edit "$TAG" --notes-file notes.md
           else
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md
           fi
