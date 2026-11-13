@@ -10,9 +10,7 @@ from homeassistant.core import HomeAssistant
 from .coordinator import HealthStatusConfigEntry
 
 
-async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: HealthStatusConfigEntry
-) -> dict[str, Any]:
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: HealthStatusConfigEntry) -> dict[str, Any]:
     """Return the settings and the last answer of every source.
 
     Everything here comes from public status pages; nothing needs redacting.

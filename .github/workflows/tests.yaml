@@ -5,14 +5,44 @@ on:
   pull_request:
 
 jobs:
-  pytest:
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/ruff-action@v3
+      - run: ruff format --check .
+
+  pytest:
+    name: pytest (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Newest Home Assistant the test harness supports.
+          - name: latest
+            python: "3.14"
+            homeassistant: ""
+          # Oldest version promised in hacs.json.
+          - name: minimum
+            python: "3.13"
+            homeassistant: "2025.8.3"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python }}
       - name: Install Home Assistant test harness
-        run: pip install pytest-homeassistant-custom-component
+        run: |
+          if [ -n "${{ matrix.homeassistant }}" ]; then
+            # Use the dependency versions that Home Assistant release shipped with
+            # (pycares 5 came later and breaks the aiodns of that time).
+            curl -sSfL -o constraints.txt \
+              "https://raw.githubusercontent.com/home-assistant/core/${{ matrix.homeassistant }}/homeassistant/package_constraints.txt"
+            pip install -c constraints.txt pytest-homeassistant-custom-component "homeassistant==${{ matrix.homeassistant }}" "pycares<5"
+          else
+            pip install pytest-homeassistant-custom-component
+          fi
+          python -c "import homeassistant.const as c; print('Home Assistant', c.__version__)"
       - name: Run tests (parsers and Home Assistant)
         run: pytest -v

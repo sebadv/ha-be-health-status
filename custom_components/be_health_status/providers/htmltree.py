@@ -11,7 +11,7 @@ _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "me
 class Node:
     """An element with its attributes, children and text."""
 
-    __slots__ = ("tag", "attrs", "children", "parent")
+    __slots__ = ("attrs", "children", "parent", "tag")
 
     def __init__(self, tag: str, attrs: dict[str, str], parent: Node | None) -> None:
         self.tag = tag
@@ -44,11 +44,7 @@ class Node:
                 yield from child.iter()
 
     def find_all(self, tag: str | None = None, cls: str | None = None) -> list[Node]:
-        return [
-            n
-            for n in self.iter()
-            if (tag is None or n.tag == tag) and (cls is None or cls in n.classes)
-        ]
+        return [n for n in self.iter() if (tag is None or n.tag == tag) and (cls is None or cls in n.classes)]
 
     def find(self, tag: str | None = None, cls: str | None = None) -> Node | None:
         return next(iter(self.find_all(tag, cls)), None)

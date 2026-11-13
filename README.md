@@ -10,6 +10,8 @@
 **Know right away when a service your pharmacy or practice depends on is down — inside Home Assistant.**
 
 [![hassfest](https://github.com/sebadv/ha-be-health-status/actions/workflows/hassfest.yaml/badge.svg)](https://github.com/sebadv/ha-be-health-status/actions/workflows/hassfest.yaml)
+[![Release](https://img.shields.io/github/v/release/sebadv/ha-be-health-status)](https://github.com/sebadv/ha-be-health-status/releases)
+[![Marketplace: custom repository](https://img.shields.io/badge/Marketplace-custom_repository-41BDF5)](#getting-started)
 [![Tests](https://github.com/sebadv/ha-be-health-status/actions/workflows/tests.yaml/badge.svg)](https://github.com/sebadv/ha-be-health-status/actions/workflows/tests.yaml)
 
 > 🇳🇱 **In het kort:** deze integratie houdt in Home Assistant bij of eHealth, CareConnect, itsme,
@@ -119,6 +121,12 @@ actions:
       title: eHealth has a problem
       message: "{{ state_attr('binary_sensor.ehealth_problem', 'affected') | join(', ') }}"
 ```
+
+## Something wrong?
+
+[Open an issue](https://github.com/sebadv/ha-be-health-status/issues/new/choose) and attach the
+diagnostics file (*Settings → Devices & services → BE Health Status → ⋮ → Download diagnostics*).
+It only contains public status information.
 
 ## Good to know
 

@@ -1,0 +1,12 @@
+target-version = "py313"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "SIM", "PIE", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # en dashes and arrows in user-facing text are intended
+
+[lint.per-file-ignores]
+"tests/*" = ["E402", "B017"]
+
+[lint.isort]
+known-first-party = ["custom_components"]

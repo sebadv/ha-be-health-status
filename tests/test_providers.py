@@ -6,6 +6,8 @@ of them so every normalised state is exercised.
 
 from __future__ import annotations
 
+from datetime import UTC
+
 import pytest
 
 from custom_components.be_health_status.models import SEVERITY, Status, worst
@@ -236,7 +238,13 @@ def test_intermut_french(load_text):
 def test_build_sources_all_topics():
     sources = build_sources(list(TOPICS), ["pharma", "nurses"], "nl")
     assert list(sources) == [
-        "ehealth", "careconnect", "itsme", "nmvs", "rijksregister", "mycarenet_pharma", "mycarenet_nurses",
+        "ehealth",
+        "careconnect",
+        "itsme",
+        "nmvs",
+        "rijksregister",
+        "mycarenet_pharma",
+        "mycarenet_nurses",
     ]
     for source in sources.values():
         assert source["provider"] in PROVIDERS
@@ -292,8 +300,11 @@ def test_display_order_follows_page_numbers(load_json):
         ("1. IAM - Identity & Access Management", "IAM", 1),
         ("3. TimeStamping service - Preservation of proof of the existence of a document", "TimeStamping service", 3),
         ("4. End to end Encryption (E2EE)", "End to end Encryption (E2EE)", 4),
-        ("9. Services for managing access to patient's medical data - MetaHub, Consent & Therapeutic Links webservices",
-         "MetaHub, Consent & Therapeutic Links webservices", 9),
+        (
+            "9. Services for managing access to patient's medical data - MetaHub, Consent & Therapeutic Links webservices",  # noqa: E501
+            "MetaHub, Consent & Therapeutic Links webservices",
+            9,
+        ),
         ("10. CoBRHA+ - Common Base Registry for HealthCare Actor", "CoBRHA+", 10),
         ("13. UPPAD (Unique Portal for Profesionals for Administrative Data)", "UPPAD", 13),
         ("18. De geneesmiddelendatabank SAM v2", "De geneesmiddelendatabank SAM v2", 18),
@@ -342,28 +353,32 @@ def test_interventions_missing():
 
 
 def test_incidents(load_text):
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from custom_components.be_health_status.providers.ehealth_events import parse_incidents
 
-    now = datetime(2026, 11, 13, 10, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 11, 13, 10, 0, tzinfo=UTC)
     events = parse_incidents(load_text("ehealth_rss.xml"), now)
     assert len(events) == 1  # solved one and the forgotten one are skipped
     inc = events[0]
     assert inc.name == "Issues impacting the Recip-e services"
     assert inc.status == "Investigating"
     assert inc.kind == "incident"
-    assert inc.details["description"] == "There are issues impacting the Recip-e services.; Our teams are investigating."
+    assert (
+        inc.details["description"] == "There are issues impacting the Recip-e services.; Our teams are investigating."
+    )
     assert inc.url.startswith("https://www.status.ehealth.fgov.be/nl/incidents/")
 
 
 def test_event_timing():
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     from custom_components.be_health_status.models import Event
 
-    now = datetime(2026, 11, 14, 21, 0, tzinfo=timezone.utc)
-    e = Event(id="x", name="x", kind="maintenance", starts_at=now - timedelta(hours=1), ends_at=now + timedelta(hours=1))
+    now = datetime(2026, 11, 14, 21, 0, tzinfo=UTC)
+    e = Event(
+        id="x", name="x", kind="maintenance", starts_at=now - timedelta(hours=1), ends_at=now + timedelta(hours=1)
+    )
     assert e.is_ongoing(now) and not e.is_over(now)
     assert e.is_over(now + timedelta(hours=2))
 

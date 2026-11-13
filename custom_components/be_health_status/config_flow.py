@@ -267,8 +267,6 @@ class HealthStatusConfigFlow(_SetupSteps, ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Which topics to follow."""
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured()
         if user_input is not None:
             return await self._after_topics(user_input)
         return self.async_show_form(step_id="user", data_schema=self._topics_schema())
@@ -326,9 +324,7 @@ class HealthStatusOptionsFlow(_SetupSteps, OptionsFlowWithReload):
                 unit_of_measurement="min",
             )
         )
-        schema = vol.Schema(
-            {vol.Required(name, default=scan_minutes(options, name)): selector for name in fields}
-        )
+        schema = vol.Schema({vol.Required(name, default=scan_minutes(options, name)): selector for name in fields})
         return self.async_show_form(step_id="polling", data_schema=schema)
 
     def _finish(self) -> ConfigFlowResult:

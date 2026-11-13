@@ -1,0 +1,40 @@
+name: Something does not work
+description: A status is wrong, a source is no longer read, or setup fails
+labels: [bug]
+body:
+  - type: dropdown
+    id: source
+    attributes:
+      label: Which source?
+      multiple: true
+      options: [eHealth, CareConnect, itsme, NMVS, National Register, MyCareNet, Setup / Configure]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens, and what did you expect?
+      description: For a wrong status, mention what the provider's own status page shows.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: BE Health Status and Home Assistant version
+      placeholder: "BE Health Status 0.7.0, Home Assistant 2026.11.1"
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: >-
+        Settings → Devices & services → BE Health Status → three dots → Download diagnostics.
+        Drag the file here. It only contains public status information.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: Lines mentioning be_health_status from Settings → System → Logs, if any.
+      render: text

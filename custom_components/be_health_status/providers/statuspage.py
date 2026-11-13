@@ -60,12 +60,8 @@ def parse_statuspage(summary: Any) -> Snapshot:
             position=row.get("position") if isinstance(row.get("position"), int) else None,
         )
 
-    events = [
-        _event(i, "incident") for i in summary.get("incidents") or [] if i.get("status") not in _CLOSED
-    ] + [
-        _event(m, "maintenance")
-        for m in summary.get("scheduled_maintenances") or []
-        if m.get("status") not in _CLOSED
+    events = [_event(i, "incident") for i in summary.get("incidents") or [] if i.get("status") not in _CLOSED] + [
+        _event(m, "maintenance") for m in summary.get("scheduled_maintenances") or [] if m.get("status") not in _CLOSED
     ]
     if not components:
         raise ProviderError("status page lists no components")
