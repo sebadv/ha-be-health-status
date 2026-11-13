@@ -5,7 +5,11 @@
         "title": "BE Health Status",
         "description": "Cochez tout ce que vous voulez suivre. Ensuite, vous choisissez les services de chaque sujet.",
         "data": {
-          "topics": "Que voulez-vous suivre ?"
+          "topics": "Que voulez-vous suivre ?",
+          "language": "Langue des noms de services"
+        },
+        "data_description": {
+          "language": "La plupart des fournisseurs ne nomment leurs services qu'en néerlandais ou en français. Choisissez celle que vous voulez voir."
         }
       },
       "sectors": {
@@ -52,7 +56,11 @@
         "title": "Que suivez-vous ?",
         "description": "Cochez tout ce que vous voulez suivre. Ensuite, vous choisissez les services de chaque sujet.",
         "data": {
-          "topics": "Que voulez-vous suivre ?"
+          "topics": "Que voulez-vous suivre ?",
+          "language": "Langue des noms de services"
+        },
+        "data_description": {
+          "language": "La plupart des fournisseurs ne nomment leurs services qu'en néerlandais ou en français. Choisissez celle que vous voulez voir."
         }
       },
       "sectors": {
@@ -121,6 +129,12 @@
         "doctors": "Médecins",
         "dentists": "Dentistes",
         "nurses": "Infirmiers"
+      }
+    },
+    "language": {
+      "options": {
+        "nl": "Nederlands",
+        "fr": "Français"
       }
     }
   },

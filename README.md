@@ -81,12 +81,14 @@ message under *Settings → Repairs*. It disappears by itself when the source an
    and paste `https://github.com/sebadv/ha-be-health-status`. Install **BE Health Status** and restart
    Home Assistant.
 2. **Add it.** *Settings → Devices & services → Add integration → BE Health Status*.
-3. **Tick what you want to follow** – for example eHealth, NMVS and MyCareNet.
+3. **Tick what you want to follow** – for example eHealth, NMVS and MyCareNet – and choose whether
+   the services should be named in **Dutch or French** (most providers only use those two).
 4. **Pick the services of each topic.** You get one short step per topic (for MyCareNet you first choose
    your sector). Sensible choices are already ticked.
 
 Want to follow something else later? Open the integration and click **Configure** → **What I follow**:
-you go through the same steps, with your current choices filled in.
+you go through the same steps, with your current choices filled in. Switching the language there keeps
+the services you ticked.
 
 Want updates faster or less often? **Configure** → **How often it checks** lets you set the number of
 minutes per topic (at least 1). The values already filled in are the recommended ones.

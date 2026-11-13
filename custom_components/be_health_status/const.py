@@ -5,12 +5,15 @@ from __future__ import annotations
 DOMAIN = "be_health_status"
 
 # Stored in the config entry options:
+#   language:   "nl" | "fr"                     language of the service names
 #   topics:     ["ehealth", "mycarenet", ...]   what the user ticked
 #   sectors:    ["pharma", ...]                 MyCareNet sectors
 #   sources:    {key: {provider, params, title}} one device each
 #   components: {key: {component_id: name}}     the services to create sensors for
 #   scan_intervals: {topic | "calendar": minutes}  polling, set under Configure
 CONF_TOPICS = "topics"
+CONF_LANGUAGE = "language"
+LANGUAGES = ("nl", "fr")
 CONF_SECTORS = "sectors"
 CONF_SOURCES = "sources"
 CONF_COMPONENTS = "components"

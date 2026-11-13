@@ -5,7 +5,11 @@
         "title": "BE Health Status",
         "description": "Vink aan wat je wil volgen. In de volgende stappen kies je per onderwerp de diensten.",
         "data": {
-          "topics": "Wat wil je volgen?"
+          "topics": "Wat wil je volgen?",
+          "language": "Taal van de dienstnamen"
+        },
+        "data_description": {
+          "language": "De meeste aanbieders benoemen hun diensten enkel in het Nederlands of het Frans. Kies welke je wil zien."
         }
       },
       "sectors": {
@@ -52,7 +56,11 @@
         "title": "Wat volg je?",
         "description": "Vink aan wat je wil volgen. In de volgende stappen kies je per onderwerp de diensten.",
         "data": {
-          "topics": "Wat wil je volgen?"
+          "topics": "Wat wil je volgen?",
+          "language": "Taal van de dienstnamen"
+        },
+        "data_description": {
+          "language": "De meeste aanbieders benoemen hun diensten enkel in het Nederlands of het Frans. Kies welke je wil zien."
         }
       },
       "sectors": {
@@ -121,6 +129,12 @@
         "doctors": "Artsen",
         "dentists": "Tandartsen",
         "nurses": "Verpleegkundigen"
+      }
+    },
+    "language": {
+      "options": {
+        "nl": "Nederlands",
+        "fr": "Français"
       }
     }
   },

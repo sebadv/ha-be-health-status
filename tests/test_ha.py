@@ -190,6 +190,29 @@ async def test_options_flow_removes_untracked_topic(hass: HomeAssistant) -> None
     assert {d.name for d in devices} == {"eHealth"}
 
 
+async def test_language_can_be_chosen(hass: HomeAssistant) -> None:
+    entry = await _setup_via_flow(hass)
+    assert entry.options["language"] == "nl"  # follows Home Assistant (English -> Dutch names)
+    assert entry.options["sources"]["ehealth"]["params"]["language"] == "nl"
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "topics"})
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"topics": ["ehealth", "itsme"], "language": "fr"}
+    )
+    # the earlier choice is kept: service ids are the same in both languages
+    assert set(result["data_schema"]({})["components"]) == {IAM, RECIP}
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"components": [IAM, RECIP]})
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    assert entry.options["language"] == "fr"
+    assert entry.options["sources"]["ehealth"]["params"]["language"] == "fr"
+    assert entry.options["sources"]["ehealth"]["title"] == "eHealth"
+    assert set(entry.options["components"]["ehealth"]) == {IAM, RECIP}
+
+
 async def test_polling_interval_is_configurable(hass: HomeAssistant) -> None:
     entry = await _setup_via_flow(hass)
     coordinator = entry.runtime_data["ehealth"].coordinator

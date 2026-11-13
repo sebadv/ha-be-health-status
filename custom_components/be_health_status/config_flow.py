@@ -42,11 +42,13 @@ from homeassistant.helpers.selector import (
 from .const import (
     CALENDAR,
     CONF_COMPONENTS,
+    CONF_LANGUAGE,
     CONF_SCAN_INTERVALS,
     CONF_SECTORS,
     CONF_SOURCES,
     CONF_TOPICS,
     DOMAIN,
+    LANGUAGES,
     MAX_SCAN_MINUTES,
     MIN_SCAN_MINUTES,
 )
@@ -86,6 +88,7 @@ class _SetupSteps:
 
     hass: Any
     _topics: list[str]
+    _language: str | None
     _sectors: list[str]
     _sources: dict[str, dict[str, Any]]
     _components: dict[str, dict[str, str]]
@@ -97,6 +100,7 @@ class _SetupSteps:
     def _init_state(self, options: dict[str, Any] | None = None) -> None:
         options = options or {}
         self._topics = list(options.get(CONF_TOPICS, []))
+        self._language = options.get(CONF_LANGUAGE)
         self._sectors = list(options.get(CONF_SECTORS, ["pharma"]))
         self._previous_components = {k: dict(v) for k, v in options.get(CONF_COMPONENTS, {}).items()}
         self._scan_intervals = dict(options.get(CONF_SCAN_INTERVALS, {}))
@@ -107,6 +111,9 @@ class _SetupSteps:
 
     @property
     def _lang(self) -> str:
+        """Language of the service names; until chosen, follow Home Assistant's language."""
+        if self._language in LANGUAGES:
+            return self._language
         return "fr" if (self.hass.config.language or "").startswith("fr") else "nl"
 
     def _topics_schema(self) -> vol.Schema:
@@ -119,12 +126,21 @@ class _SetupSteps:
                         mode=SelectSelectorMode.LIST,
                         translation_key="topic",
                     )
-                )
+                ),
+                vol.Required(CONF_LANGUAGE, default=self._lang): SelectSelector(
+                    SelectSelectorConfig(
+                        options=list(LANGUAGES),
+                        mode=SelectSelectorMode.LIST,
+                        translation_key="language",
+                    )
+                ),
             }
         )
 
-    async def _after_topics(self, topics: list[str]) -> ConfigFlowResult:
-        self._topics = [t for t in TOPICS if t in topics]
+    async def _after_topics(self, user_input: dict[str, Any]) -> ConfigFlowResult:
+        if user_input.get(CONF_LANGUAGE) in LANGUAGES:
+            self._language = user_input[CONF_LANGUAGE]
+        self._topics = [t for t in TOPICS if t in user_input[CONF_TOPICS]]
         if not self._topics:
             return self.async_show_form(  # type: ignore[attr-defined]
                 step_id=self._first_step_id,  # type: ignore[attr-defined]
@@ -228,6 +244,7 @@ class _SetupSteps:
 
     def _options_data(self) -> dict[str, Any]:
         return {
+            CONF_LANGUAGE: self._lang,
             CONF_TOPICS: self._topics,
             CONF_SECTORS: self._sectors,
             CONF_SOURCES: self._sources,
@@ -253,7 +270,7 @@ class HealthStatusConfigFlow(_SetupSteps, ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(DOMAIN)
         self._abort_if_unique_id_configured()
         if user_input is not None:
-            return await self._after_topics(user_input[CONF_TOPICS])
+            return await self._after_topics(user_input)
         return self.async_show_form(step_id="user", data_schema=self._topics_schema())
 
     def _finish(self) -> ConfigFlowResult:
@@ -286,7 +303,7 @@ class HealthStatusOptionsFlow(_SetupSteps, OptionsFlowWithReload):
     async def async_step_topics(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Which topics to follow."""
         if user_input is not None:
-            return await self._after_topics(user_input[CONF_TOPICS])
+            return await self._after_topics(user_input)
         return self.async_show_form(step_id="topics", data_schema=self._topics_schema())
 
     async def async_step_polling(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
