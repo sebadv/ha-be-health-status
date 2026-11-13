@@ -6,6 +6,8 @@ coloured dot and a tooltip on every page.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import aiohttp
 
 from ..models import Component, Snapshot, Status
@@ -64,19 +66,11 @@ class IbzProvider(Provider):
     """Rijksregister / Registre national."""
 
     type = "ibz"
-    fields = (("language", "language", "nl"),)
+    scan_interval = timedelta(minutes=5)
 
     @property
     def lang(self) -> str:
         return "fr" if self.params.get("language") == "fr" else "nl"
-
-    @property
-    def title(self) -> str:
-        return "Rijksregister" if self.lang == "nl" else "Registre national"
-
-    @property
-    def unique_id(self) -> str:
-        return f"ibz_{self.lang}"
 
     @property
     def url(self) -> str:

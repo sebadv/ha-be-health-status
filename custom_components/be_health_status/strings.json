@@ -126,5 +126,11 @@
         "name": "Problem"
       }
     }
+  },
+  "issues": {
+    "source_failing": {
+      "title": "{source} can't be read",
+      "description": "BE Health Status has not been able to read the {source} status page since {since}.\n\nLast error: {error}\n\nThe site may be down for a while, or its page may have changed. If this lasts, please report it so the integration can be updated. This message disappears by itself as soon as {source} answers again."
+    }
   }
 }

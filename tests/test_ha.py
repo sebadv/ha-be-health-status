@@ -231,3 +231,92 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
     diag = await async_get_config_entry_diagnostics(hass, entry)
     assert diag["sources"]["ehealth"]["last_update_success"] is True
     assert RECIP in diag["sources"]["ehealth"]["snapshot"]["components"]
+
+
+async def _setup_ehealth_recip_only(hass: HomeAssistant) -> config_entries.ConfigEntry:
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"topics": ["ehealth"]})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"components": [RECIP]})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    return result["result"]
+
+
+def _state(hass: HomeAssistant, domain: str, unique_id: str):
+    entity_id = er.async_get(hass).async_get_entity_id(domain, DOMAIN, unique_id)
+    return hass.states.get(entity_id)
+
+
+async def test_ehealth_maintenance_and_incidents(hass: HomeAssistant, snapshots) -> None:
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.be_health_status.models import Event
+
+    now = dt_util.utcnow()
+    snapshots["ehealth"].events = [
+        Event(id="past", name="Past", kind="maintenance", starts_at=now - timedelta(days=2),
+              ends_at=now - timedelta(days=1), business_impact=True),
+        Event(id="quiet", name="No impact", kind="maintenance", starts_at=now + timedelta(hours=1),
+              ends_at=now + timedelta(hours=2), business_impact=False),
+        Event(id="io300", name="CIN-NIC - Maintenance IO300", kind="maintenance",
+              starts_at=now + timedelta(days=1), ends_at=now + timedelta(days=1, hours=3),
+              business_impact=True, details={"partner": "CIN-NIC"}),
+    ]
+    await _setup_ehealth_recip_only(hass)
+
+    nxt = _state(hass, "sensor", "ehealth_next_maintenance")
+    assert nxt.attributes["title"] == "CIN-NIC - Maintenance IO300"  # past and no-impact ones skipped
+    assert nxt.attributes["partner"] == "CIN-NIC"
+    assert _state(hass, "sensor", "ehealth_overall").state == "operational"
+    assert _state(hass, "binary_sensor", "ehealth_problem").state == "off"
+
+    # A maintenance with business impact is going on, and an incident is being investigated.
+    snapshots["ehealth"].events = [
+        Event(id="now", name="Recip-e release", kind="maintenance", starts_at=now - timedelta(minutes=5),
+              ends_at=now + timedelta(hours=1), business_impact=True),
+        Event(id="inc", name="Issues impacting Recip-e", kind="incident", status="Investigating",
+              details={"description": "Our teams are investigating."}),
+    ]
+    coordinator = hass.config_entries.async_entries(DOMAIN)[0].runtime_data["ehealth"].coordinator
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert _state(hass, "sensor", "ehealth_overall").state == "maintenance"
+    problem = _state(hass, "binary_sensor", "ehealth_problem")
+    assert problem.state == "on"
+    assert problem.attributes["incidents"][0]["status"] == "Investigating"
+    assert problem.attributes["maintenance"] == ["Recip-e release"]
+
+
+async def test_short_group_names(hass: HomeAssistant) -> None:
+    await _setup_via_flow(hass)
+    iam = _state(hass, "sensor", f"ehealth_c_{IAM}")
+    assert iam.name == "eHealth IAM"
+    assert iam.entity_id == "sensor.ehealth_iam"
+
+
+async def test_repair_issue_after_long_failure(hass: HomeAssistant, snapshots) -> None:
+    from datetime import timedelta
+
+    from homeassistant.helpers import issue_registry as ir
+    from homeassistant.util import dt as dt_util
+
+    entry = await _setup_via_flow(hass)
+    coordinator = entry.runtime_data["itsme"].coordinator
+    good = snapshots["statuspage"]
+    snapshots["statuspage"] = ProviderError("page changed")
+
+    await coordinator.async_refresh()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "source_failing_itsme") is None  # not yet
+
+    coordinator.failing_since = dt_util.utcnow() - timedelta(hours=3)
+    await coordinator.async_refresh()
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, "source_failing_itsme")
+    assert issue is not None
+    assert issue.translation_placeholders["source"] == "itsme"
+
+    snapshots["statuspage"] = good
+    await coordinator.async_refresh()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "source_failing_itsme") is None

@@ -6,6 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import SourceCoordinator, SourceRuntime
@@ -64,4 +65,19 @@ class HealthStatusEntity(CoordinatorEntity[SourceCoordinator]):
             if kind == "incident"
             else self.coordinator.data.maintenances()
         )
-        return [e for e in events if not e.component_ids or not selected or selected & set(e.component_ids)]
+        now = dt_util.utcnow()
+        return [
+            e
+            for e in events
+            if not e.is_over(now)
+            and (not e.component_ids or not selected or selected & set(e.component_ids))
+        ]
+
+    def upcoming_maintenance(self) -> list[Event]:
+        """Maintenance that affects users (or doesn't say), ongoing or still to come, soonest first."""
+        return [e for e in self.relevant_events("maintenance") if e.starts_at and e.business_impact is not False]
+
+    def ongoing_maintenance(self) -> list[Event]:
+        """Maintenance affecting users that is going on right now."""
+        now = dt_util.utcnow()
+        return [e for e in self.upcoming_maintenance() if e.is_ongoing(now)]

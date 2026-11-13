@@ -41,8 +41,10 @@ class ProblemSensor(HealthStatusEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return any(c.status in PROBLEM_STATUSES for c in self.scope()) or bool(
-            self.relevant_events("incident")
+        return (
+            any(c.status in PROBLEM_STATUSES for c in self.scope())
+            or bool(self.relevant_events("incident"))
+            or bool(self.ongoing_maintenance())
         )
 
     @property
@@ -54,7 +56,8 @@ class ProblemSensor(HealthStatusEntity, BinarySensorEntity):
                 if c.status in PROBLEM_STATUSES
             ],
             "incidents": [
-                {"title": e.name, "status": e.status, "impact": e.impact, "url": e.url}
+                {k: v for k, v in {"title": e.name, "status": e.status, "impact": e.impact, "url": e.url, **e.details}.items() if v}
                 for e in self.relevant_events("incident")
             ],
+            "maintenance": [e.name for e in self.ongoing_maintenance()],
         }

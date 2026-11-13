@@ -8,8 +8,16 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import issue_registry as ir
 
-from .const import CONF_COMPONENTS, CONF_SECTORS, CONF_SOURCES, CONF_TOPICS, DOMAIN
+from .const import (
+    CONF_COMPONENTS,
+    CONF_SECTORS,
+    CONF_SOURCES,
+    CONF_TOPICS,
+    DOMAIN,
+    ISSUE_PREFIX,
+)
 from .coordinator import HealthStatusConfigEntry, SourceCoordinator, SourceRuntime
 
 PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
@@ -38,6 +46,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: HealthStatusConfigEntry)
             "; ".join(f"{r.title}: {r.coordinator.last_exception}" for r in runtime.values())
         )
     entry.runtime_data = runtime
+
+    # Drop repair issues of sources that are no longer followed.
+    issues = ir.async_get(hass)
+    for domain, issue in list(issues.issues):
+        if domain == DOMAIN and issue.startswith(ISSUE_PREFIX) and issue[len(ISSUE_PREFIX):] not in runtime:
+            ir.async_delete_issue(hass, DOMAIN, issue)
 
     # Remove devices of sources that are no longer followed.
     device_registry = dr.async_get(hass)

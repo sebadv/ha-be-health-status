@@ -8,11 +8,15 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from typing import Any
+
+from datetime import timedelta
 
 import aiohttp
 
 from ..models import Component, Snapshot, Status, worst
 from .base import Provider, ProviderError, get_text
+from .ehealth_events import async_fetch_events
 from .htmltree import Node, parse_html
 
 BASE_URL = "https://dashboard.intermut.be/"
@@ -90,7 +94,12 @@ class IntermutProvider(Provider):
     """MyCareNet (intermutualistisch dashboard), one sector."""
 
     type = "intermut"
-    fields = (("sector", "select:" + ",".join(SECTORS), "pharma"), ("language", "language", "nl"))
+    scan_interval = timedelta(minutes=5)
+    has_maintenance = True
+
+    def __init__(self, params: dict[str, Any]) -> None:
+        super().__init__(params)
+        self._last_events: list = []
 
     @property
     def sector(self) -> str:
@@ -102,16 +111,17 @@ class IntermutProvider(Provider):
         return "fr" if self.params.get("language") == "fr" else "nl"
 
     @property
-    def title(self) -> str:
-        return f"MyCareNet ({self.sector})"
-
-    @property
-    def unique_id(self) -> str:
-        return f"intermut_{self.sector}_{self.lang}"
-
-    @property
     def url(self) -> str:
         return f"{BASE_URL}?sector={self.sector}&partners=yes"
 
     async def async_fetch(self, session: aiohttp.ClientSession) -> Snapshot:
-        return parse_intermut(await get_text(session, self.url), self.lang)
+        snapshot = parse_intermut(await get_text(session, self.url), self.lang)
+        try:
+            # MyCareNet (CIN-NIC) announces its maintenance on the eHealth status site.
+            snapshot.events = await async_fetch_events(
+                session, self.lang, partners={"CIN-NIC"}, incidents=False
+            )
+        except ProviderError:
+            snapshot.events = self._last_events
+        self._last_events = snapshot.events
+        return snapshot

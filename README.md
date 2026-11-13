@@ -37,12 +37,12 @@ Home Assistant:
 
 | Service | What it is for |
 |---|---|
-| **eHealth** | The government platform behind Recip-e (electronic prescriptions), Vitalink, eHealthBox, login and certificates |
+| **eHealth** | The government platform behind Recip-e (electronic prescriptions), Vitalink, eHealthBox, login and certificates — including its incidents and the maintenance calendar |
 | **CareConnect / Corilus** | Pharmacy and practice software, including tarification, medication monitoring and Helena |
 | **itsme** | The login and signing app — including planned maintenance, so you know in advance |
 | **NMVS** | The medicines verification system you scan boxes against (falsified medicines directive) |
 | **National Register** | The National Register, eID (BELPIC) and civil registry (BAEC) |
-| **MyCareNet** | Communication with the health insurers: chapter IV, member data, eAttest, third-party billing… for pharmacists, doctors, dentists or nurses |
+| **MyCareNet** | Communication with the health insurers: chapter IV, member data, eAttest, third-party billing… for pharmacists, doctors, dentists or nurses — including announced maintenance |
 
 You tick the topics you care about, and within each topic the services. Only following Recip-e and
 Vitalink? Tick eHealth, then just those two.
@@ -65,7 +65,15 @@ Every topic you follow appears as its own device, with on top of that:
 - **Overall status** – one line that says how that topic is doing.
 - **Problem** – an on/off switch that turns on as soon as something is wrong. Use it to send yourself
   a notification, flash a light, or show a warning on a wall tablet in the pharmacy.
-- **Next maintenance** (itsme) – when the next announced maintenance starts.
+- **Next maintenance** (eHealth, MyCareNet, itsme) – when the next announced maintenance that affects
+  users starts, with what it is about and a link. While such maintenance is going on, the overall status
+  shows *Maintenance*.
+
+When eHealth publishes an incident ("Investigating"), the **Problem** sensor turns on with the explanation
+and a link, even before the service itself is marked as down.
+
+If a source can't be read for two hours (the site is down, or its page was redesigned), you get a
+message under *Settings → Repairs*. It disappears by itself when the source answers again.
 
 ## Getting started
 
@@ -110,6 +118,8 @@ actions:
 ## Good to know
 
 - The integration only **reads** public status pages. It never logs in anywhere and needs no passwords.
+- It checks every 2 minutes (every 5 minutes for the National Register and MyCareNet web pages, every
+  10 minutes for the eHealth maintenance calendar), so it stays light on the providers' servers.
 - It reports what the service providers publish. If they haven't noticed a problem yet, neither has
   this integration.
 - The National Register and MyCareNet don't offer a proper data feed, so the integration reads their
@@ -120,20 +130,20 @@ actions:
 
 | Source | Read from |
 |---|---|
-| eHealth | `status.ehealth.fgov.be/{nl,fr}/api/components/prod` (JSON) — services plus the 18 groups; a group shows the worst status of its services |
+| eHealth | `status.ehealth.fgov.be/{nl,fr}/api/components/prod` (JSON) — services plus the 18 groups (short names; the full name is in `full_name`); a group shows the worst status of its services. Maintenance from the `data-interventions` calendar on `www.status.ehealth.fgov.be`, incidents from its RSS feed |
 | CareConnect (PagerDuty status page) | `/api/services`, `/api/impacted_services`, `/api/post_enums` |
 | itsme (Statuspage.io) | `/api/v2/summary.json`, including open incidents and scheduled maintenance |
 | NMVS | `status-nmvs.arvato-systems.de/api/services` (per country, per endpoint); stale data is reported as unknown |
 | National Register | the service status block on `ibz.rrn.fgov.be` |
-| MyCareNet | `dashboard.intermut.be/?sector=…` (pharma, doctors, dentists, nurses) |
+| MyCareNet | `dashboard.intermut.be/?sector=…` (pharma, doctors, dentists, nurses); maintenance: CIN-NIC interventions on the eHealth calendar |
 
 - States: `operational`, `maintenance`, `degraded`, `partial_outage`, `major_outage`, `unknown`
   (enum sensor, translated in English, Dutch and French). The source's own wording is in the
   `raw_status` attribute.
 - Added once; every followed topic (and every MyCareNet sector) is a device with: a status sensor per selected service, `Overall status`,
   `Problem` (binary sensor, attributes `affected` and `incidents`), and `Next maintenance` for
-  itsme.
-- Polls every minute, 30 s timeout. When none of the sources answers at start-up, Home Assistant retries
+  eHealth, MyCareNet and itsme.
+- Polls every 2 minutes (5 for HTML pages), 30 s timeout; repair issue after 2 hours of failures. When none of the sources answers at start-up, Home Assistant retries
   the setup later; when only some fail, the others keep working.
 - *Download diagnostics* on the integration shows the raw answer of every source.
 - No extra Python requirements. Works on Home Assistant 2025.8 and

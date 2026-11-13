@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>eHealth Status RSS feed</title>
+<item><title>Issues impacting the Recip-e services|Investigating</title><category>incident</category><pubDate>Fri, 13 Nov 2026 09:12:00 +0100</pubDate><link>https://www.status.ehealth.fgov.be/nl/incidents/2026/11/13/90001/Issues</link><guid>g1</guid><description>&lt;p&gt;There are issues impacting the Recip-e services.&lt;/p&gt; &lt;p&gt;Our teams are investigating.&lt;/p&gt;</description></item>
+<item><title>Issues impacting the Vitalink FHIR services|Solved</title><category>incident</category><pubDate>Tue, 10 Nov 2026 14:44:23 +0100</pubDate><link>https://www.status.ehealth.fgov.be/nl/incidents/2026/11/10/83675/x</link><guid>g2</guid><description>&lt;p&gt;Solved from 13:29.&lt;/p&gt;</description></item>
+<item><title>Forgotten incident|Investigating</title><category>incident</category><pubDate>Mon, 01 Jun 2026 10:00:00 +0200</pubDate><link>https://www.status.ehealth.fgov.be/nl/incidents/2026/06/01/1/y</link><guid>g3</guid><description>old</description></item>
+</channel></rss>

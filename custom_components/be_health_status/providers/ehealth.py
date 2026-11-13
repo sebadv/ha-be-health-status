@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import logging
+import re
 from typing import Any
 
 import aiohttp
 
 from ..models import Component, Snapshot, Status, worst
 from .base import Provider, ProviderError, get_json
+from .ehealth_events import async_fetch_events
+
+_LOGGER = logging.getLogger(__name__)
 
 API_URL = "https://status.ehealth.fgov.be/{lang}/api/components/prod"
 PAGE_URL = "https://status.ehealth.fgov.be/{lang}/dashboard"
@@ -39,6 +44,24 @@ def status_from_ehealth(code: Any, name: str | None) -> Status:
     return Status.UNKNOWN
 
 
+def short_group_name(name: str) -> tuple[str, int | None]:
+    """"9. Services for … - MetaHub, Consent & …" -> ("MetaHub, Consent & …", 9).
+
+    The page numbers its groups and adds a long explanation after " - "; keep
+    the shortest part (usually the service's own name) and the number for sorting.
+    """
+    match = re.match(r"\s*(\d+)\.\s*(.*)", name)
+    number = int(match.group(1)) if match else None
+    rest = (match.group(2) if match else name).strip()
+    parts = [p.strip() for p in rest.split(" - ") if p.strip()]
+    short = min(parts, key=len) if parts else rest
+    # "UPPAD (Unique Portal for …)" -> "UPPAD"
+    paren = re.match(r"^(\S{2,12}) \((.{15,})\)$", short)
+    if paren:
+        short = paren.group(1)
+    return short, number
+
+
 def group_component_id(group_id: str) -> str:
     """Component id used for a whole eHealth group."""
     return f"group:{group_id}"
@@ -61,7 +84,8 @@ def parse_ehealth(payload: Any, lang: str) -> Snapshot:
         name = row.get(name_key) or row.get("name_nl") or row.get("name_fr")
         if not cid or not name:
             continue
-        group_name = row.get(group_key) or row.get("group_name_nl")
+        group_full = row.get(group_key) or row.get("group_name_nl")
+        group_name = short_group_name(group_full)[0] if group_full else None
         comp = Component(
             id=str(cid),
             name=str(name).strip(),
@@ -75,21 +99,24 @@ def parse_ehealth(payload: Any, lang: str) -> Snapshot:
         components[comp.id] = comp
         if gid := row.get("group_id"):
             groups.setdefault(str(gid), []).append(comp)
-            if group_name:
-                group_names[str(gid)] = group_name
+            if group_full:
+                group_names[str(gid)] = group_full
 
     for gid, members in groups.items():
         member_worst = worst([m.status for m in members])
         culprit = next((m for m in members if m.status == member_worst), members[0])
         gcid = group_component_id(gid)
+        full = group_names.get(gid, gid)
+        short, number = short_group_name(full)
         components[gcid] = Component(
             id=gcid,
-            name=group_names.get(gid, gid),
+            name=short,
             status=member_worst,
             raw_status=culprit.raw_status,
             is_group=True,
             last_updated=max((m.last_updated or "" for m in members), default=None) or None,
-            extra={"members": [m.name for m in members]},
+            position=number,
+            extra={"full_name": full, "members": [m.name for m in members]},
         )
     if not components:
         raise ProviderError("eHealth returned no services")
@@ -100,23 +127,27 @@ class EHealthProvider(Provider):
     """status.ehealth.fgov.be."""
 
     type = "ehealth"
-    fields = (("language", "language", "nl"),)
+    has_maintenance = True
+
+    def __init__(self, params: dict[str, Any]) -> None:
+        super().__init__(params)
+        self._last_events: list = []
 
     @property
     def lang(self) -> str:
         return "fr" if self.params.get("language") == "fr" else "nl"
 
     @property
-    def title(self) -> str:
-        return "eHealth"
-
-    @property
-    def unique_id(self) -> str:
-        return f"ehealth_{self.lang}"
-
-    @property
     def url(self) -> str:
         return PAGE_URL.format(lang=self.lang)
 
     async def async_fetch(self, session: aiohttp.ClientSession) -> Snapshot:
-        return parse_ehealth(await get_json(session, API_URL.format(lang=self.lang)), self.lang)
+        snapshot = parse_ehealth(await get_json(session, API_URL.format(lang=self.lang)), self.lang)
+        try:
+            snapshot.events = await async_fetch_events(session, self.lang)
+        except ProviderError as err:
+            # The service statuses are what matters; keep them when the calendar fails.
+            _LOGGER.debug("eHealth interventions/incidents unavailable: %s", err)
+            snapshot.events = self._last_events
+        self._last_events = snapshot.events
+        return snapshot

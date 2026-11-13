@@ -12,7 +12,6 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .coordinator import HealthStatusConfigEntry, SourceRuntime
 from .entity import HealthStatusEntity, remove_stale_entities
 from .models import Status, worst
-from .providers.statuspage import StatuspageProvider
 
 PARALLEL_UPDATES = 0
 
@@ -33,7 +32,7 @@ async def async_setup_entry(
     for source in entry.runtime_data.values():
         entities.append(OverallStatusSensor(source))
         entities += [ComponentStatusSensor(source, cid, name) for cid, name in source.components.items()]
-        if isinstance(source.coordinator.provider, StatuspageProvider):
+        if source.coordinator.provider.has_maintenance:
             entities.append(NextMaintenanceSensor(source))
     async_add_entities(entities)
     remove_stale_entities(hass, entry, "sensor", {e.unique_id for e in entities if e.unique_id})
@@ -50,7 +49,8 @@ class ComponentStatusSensor(HealthStatusEntity, SensorEntity):
         super().__init__(source, _component_key(component_id))
         self._component_id = component_id
         comp = source.coordinator.data.components.get(component_id) if source.coordinator.data else None
-        self._attr_name = comp.name if comp and name == component_id else name
+        # The page's current name wins over the one stored at setup.
+        self._attr_name = comp.name if comp else name
 
     @property
     def available(self) -> bool:
@@ -99,7 +99,10 @@ class OverallStatusSensor(HealthStatusEntity, SensorEntity):
 
     @property
     def native_value(self) -> str:
-        return worst([c.status for c in self.scope()]).value
+        statuses = [c.status for c in self.scope()]
+        if self.ongoing_maintenance():
+            statuses.append(Status.MAINTENANCE)
+        return worst(statuses).value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -109,11 +112,12 @@ class OverallStatusSensor(HealthStatusEntity, SensorEntity):
                 f"{c.name}: {c.raw_status or c.status.value}" for c in scope if c.status != Status.OPERATIONAL
             ],
             "monitored": len(scope),
+            "maintenance": [_event_attrs(e) for e in self.ongoing_maintenance()],
         }
 
 
 class NextMaintenanceSensor(HealthStatusEntity, SensorEntity):
-    """Start of the next announced maintenance (itsme)."""
+    """Start of the next announced maintenance that affects users."""
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_translation_key = "next_maintenance"
@@ -121,27 +125,31 @@ class NextMaintenanceSensor(HealthStatusEntity, SensorEntity):
     def __init__(self, source: SourceRuntime) -> None:
         super().__init__(source, "next_maintenance")
 
-    def _events(self):
-        return [e for e in self.relevant_events("maintenance") if e.starts_at]
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.data is not None
 
     @property
     def native_value(self) -> datetime | None:
-        events = self._events()
+        events = self.upcoming_maintenance()
         return events[0].starts_at if events else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        events = self._events()
+        events = self.upcoming_maintenance()
         if not events:
             return {}
-        nxt = events[0]
-        return {
-            "title": nxt.name,
-            "ends_at": nxt.ends_at.isoformat() if nxt.ends_at else None,
-            "url": nxt.url,
-            "upcoming": [
-                {"title": e.name, "starts_at": e.starts_at.isoformat(), "url": e.url} for e in events[:5]
-            ],
-        }
+        return {**_event_attrs(events[0]), "upcoming": [_event_attrs(e) for e in events[:5]]}
 
 
+def _event_attrs(event) -> dict[str, Any]:
+    """Readable attributes of an incident or maintenance."""
+    attrs: dict[str, Any] = {
+        "title": event.name,
+        "starts_at": event.starts_at.isoformat() if event.starts_at else None,
+        "ends_at": event.ends_at.isoformat() if event.ends_at else None,
+        "status": event.status,
+        "url": event.url,
+    }
+    attrs.update(event.details)
+    return {k: v for k, v in attrs.items() if v not in (None, "")}

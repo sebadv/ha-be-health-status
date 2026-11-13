@@ -100,7 +100,10 @@ def ordered_for_display(snapshot: Snapshot) -> list[tuple[Component, bool]]:
     order the status page lists them; services without a group come last.
     """
     comps = list(snapshot.components.values())
-    groups = sorted((c for c in comps if c.is_group), key=lambda c: _natural_key(c.name))
+    groups = sorted(
+        (c for c in comps if c.is_group),
+        key=lambda c: (c.position is None, c.position or 0, _natural_key(c.name)),
+    )
     group_names = {g.name for g in groups}
     result: list[tuple[Component, bool]] = []
     for group in groups:

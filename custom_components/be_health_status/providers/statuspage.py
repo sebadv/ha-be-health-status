@@ -77,19 +77,11 @@ class StatuspageProvider(Provider):
     """Any page hosted by Atlassian Statuspage."""
 
     type = "statuspage"
-    fields = (("url", "url", None),)
+    has_maintenance = True
 
     @property
     def base_url(self) -> str:
         return str(self.params["url"]).rstrip("/")
-
-    @property
-    def title(self) -> str:
-        return self.params.get("name") or self.base_url.split("//", 1)[-1]
-
-    @property
-    def unique_id(self) -> str:
-        return f"statuspage_{self.base_url.split('//', 1)[-1].lower()}"
 
     @property
     def url(self) -> str:

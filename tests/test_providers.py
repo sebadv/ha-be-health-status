@@ -65,14 +65,16 @@ def test_ehealth_services_and_groups(load_json):
     assert recip.name == "Recip-e Patient"
     assert recip.status == Status.OPERATIONAL
     assert recip.raw_status == "Operationeel"
-    assert recip.group == "16. WebService"
+    assert recip.group == "WebService"
 
     vitalink = snap.components["7fe4937f59a96b03086b323b36622a88"]
     assert vitalink.status == Status.MAINTENANCE
 
     iam = snap.components[group_component_id("AXAQooF-9v9nOdhekPYm")]
     assert iam.is_group
-    assert iam.name == "1. IAM - Identity & Access Management"
+    assert iam.name == "IAM"
+    assert iam.position == 1
+    assert iam.extra["full_name"] == "1. IAM - Identity & Access Management"
     assert iam.status == Status.PARTIAL_OUTAGE  # worst member
     assert iam.raw_status == "Gedeeltelijke onderbreking"
     assert len(iam.extra["members"]) == 2
@@ -260,15 +262,6 @@ def test_default_selection(load_json):
     assert len(itsme) == 8
 
 
-def test_unique_ids_differ_per_page():
-    a = build_provider("statuspage", {"url": "https://itsme.statuspage.io/"})
-    b = build_provider("statuspage", {"url": "https://other.statuspage.io"})
-    assert a.unique_id == "statuspage_itsme.statuspage.io"
-    assert a.unique_id != b.unique_id
-    with pytest.raises(ProviderError):
-        build_provider("nope", {})
-
-
 def test_parse_datetime():
     assert parse_datetime("2026-11-10 12:30:00.278").minute == 30
     assert parse_datetime("2026-11-10T11:25:00Z").tzinfo is not None
@@ -276,27 +269,100 @@ def test_parse_datetime():
     assert parse_datetime(None) is None
 
 
-def test_display_order_is_natural_and_grouped(load_json):
+def test_display_order_follows_page_numbers(load_json):
     from custom_components.be_health_status.models import Component
     from custom_components.be_health_status.providers import ordered_for_display
 
     snap = parse_ehealth(load_json("ehealth_components.json"), "nl")
-    for n in (10, 2):  # add groups that sort wrongly as text
+    for n in (10, 3):  # extra numbered groups that would sort wrongly as text
         snap.components[f"group:x{n}"] = Component(
-            id=f"group:x{n}", name=f"{n}. Extra", status=Status.OPERATIONAL, is_group=True
+            id=f"group:x{n}", name=f"Extra {n}", status=Status.OPERATIONAL, is_group=True, position=n
         )
     order = [(c.name, member) for c, member in ordered_for_display(snap)]
     groups = [name for name, member in order if not member]
-    assert groups == [
-        "1. IAM - Identity & Access Management",
-        "2. Coding service",
-        "2. Extra",
-        "10. Extra",
-        "16. WebService",
-        "17. Web Application",
-    ]
+    assert groups == ["IAM", "Coding service", "Extra 3", "Extra 10", "WebService", "Web Application"]
     # services follow their own group, by page position (Vitalink Gateway 9 before Recip-e Patient 12)
-    i = order.index(("16. WebService", False))
+    i = order.index(("WebService", False))
     assert order[i + 1 : i + 3] == [("Vitalink Gateway", True), ("Recip-e Patient", True)]
-    i = order.index(("1. IAM - Identity & Access Management", False))
-    assert order[i + 1][0].startswith("eHealth IDP") and order[i + 2][0].startswith("WebService eHealth")
+
+
+@pytest.mark.parametrize(
+    ("full", "short", "number"),
+    [
+        ("1. IAM - Identity & Access Management", "IAM", 1),
+        ("3. TimeStamping service - Preservation of proof of the existence of a document", "TimeStamping service", 3),
+        ("4. End to end Encryption (E2EE)", "End to end Encryption (E2EE)", 4),
+        ("9. Services for managing access to patient's medical data - MetaHub, Consent & Therapeutic Links webservices",
+         "MetaHub, Consent & Therapeutic Links webservices", 9),
+        ("10. CoBRHA+ - Common Base Registry for HealthCare Actor", "CoBRHA+", 10),
+        ("13. UPPAD (Unique Portal for Profesionals for Administrative Data)", "UPPAD", 13),
+        ("18. De geneesmiddelendatabank SAM v2", "De geneesmiddelendatabank SAM v2", 18),
+        ("WebService", "WebService", None),
+    ],
+)
+def test_short_group_name(full, short, number):
+    from custom_components.be_health_status.providers.ehealth import short_group_name
+
+    assert short_group_name(full) == (short, number)
+
+
+def test_interventions(load_text):
+    from custom_components.be_health_status.providers.ehealth_events import parse_interventions
+
+    events = {e.id: e for e in parse_interventions(load_text("ehealth_home.html"))}
+    assert "old1" not in events  # closed
+    io300 = events["fR8f0KEB1-y7A1ceTyM6"]
+    assert io300.kind == "maintenance"
+    assert io300.business_impact is True
+    assert io300.starts_at.isoformat() == "2026-11-14T20:00:00+01:00"
+    assert io300.ends_at.isoformat() == "2026-11-14T23:00:00+01:00"
+    assert io300.url == "https://www.status.ehealth.fgov.be/nl/intervention/fR8f0KEB1-y7A1ceTyM6"
+    assert io300.details["partner"] == "CIN-NIC"
+    assert io300.details["impact"] == (
+        "Admission Management (Async): under_maintenance; Chapter IV (Ask): under_maintenance; "
+        "Tarification: under_maintenance"
+    )
+    multi = events["multi"]
+    assert multi.business_impact is False
+    assert multi.ends_at.isoformat() == "2026-11-12T23:00:00+01:00"
+    assert multi.details["scope"] is None
+    night = events["night"]  # 22:00 - 02:00 crosses midnight
+    assert night.ends_at.isoformat() == "2026-11-30T02:00:00+01:00"
+    assert night.details["impact"] == "Recip-e; PSS"
+
+    cin = parse_interventions(load_text("ehealth_home.html"), partners={"CIN-NIC"})
+    assert [e.id for e in cin] == ["fR8f0KEB1-y7A1ceTyM6"]
+
+
+def test_interventions_missing():
+    from custom_components.be_health_status.providers.ehealth_events import parse_interventions
+
+    with pytest.raises(ProviderError):
+        parse_interventions("<html><body>no calendar</body></html>")
+
+
+def test_incidents(load_text):
+    from datetime import datetime, timezone
+
+    from custom_components.be_health_status.providers.ehealth_events import parse_incidents
+
+    now = datetime(2026, 11, 13, 10, 0, tzinfo=timezone.utc)
+    events = parse_incidents(load_text("ehealth_rss.xml"), now)
+    assert len(events) == 1  # solved one and the forgotten one are skipped
+    inc = events[0]
+    assert inc.name == "Issues impacting the Recip-e services"
+    assert inc.status == "Investigating"
+    assert inc.kind == "incident"
+    assert inc.details["description"] == "There are issues impacting the Recip-e services.; Our teams are investigating."
+    assert inc.url.startswith("https://www.status.ehealth.fgov.be/nl/incidents/")
+
+
+def test_event_timing():
+    from datetime import datetime, timedelta, timezone
+
+    from custom_components.be_health_status.models import Event
+
+    now = datetime(2026, 11, 14, 21, 0, tzinfo=timezone.utc)
+    e = Event(id="x", name="x", kind="maintenance", starts_at=now - timedelta(hours=1), ends_at=now + timedelta(hours=1))
+    assert e.is_ongoing(now) and not e.is_over(now)
+    assert e.is_over(now + timedelta(hours=2))

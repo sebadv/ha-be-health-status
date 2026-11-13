@@ -126,5 +126,11 @@
         "name": "Probleem"
       }
     }
+  },
+  "issues": {
+    "source_failing": {
+      "title": "{source} kan niet gelezen worden",
+      "description": "BE Health Status kan de statuspagina van {source} al niet meer lezen sinds {since}.\n\nLaatste fout: {error}\n\nDe site kan een tijd plat liggen, of de pagina is veranderd. Blijft dit duren, meld het dan zodat de integratie aangepast kan worden. Deze melding verdwijnt vanzelf zodra {source} weer antwoordt."
+    }
   }
 }

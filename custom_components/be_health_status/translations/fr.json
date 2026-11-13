@@ -126,5 +126,11 @@
         "name": "Problème"
       }
     }
+  },
+  "issues": {
+    "source_failing": {
+      "title": "{source} ne peut pas être lu",
+      "description": "BE Health Status ne parvient plus à lire la page de statut de {source} depuis {since}.\n\nDernière erreur : {error}\n\nLe site est peut-être indisponible, ou sa page a changé. Si cela persiste, signalez-le afin que l'intégration puisse être adaptée. Ce message disparaît de lui-même dès que {source} répond à nouveau."
+    }
   }
 }

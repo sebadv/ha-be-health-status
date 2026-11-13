@@ -88,19 +88,10 @@ class PagerDutyProvider(Provider):
     """Any status page hosted by PagerDuty."""
 
     type = "pagerduty"
-    fields = (("url", "url", None),)
 
     @property
     def base_url(self) -> str:
         return str(self.params["url"]).rstrip("/")
-
-    @property
-    def title(self) -> str:
-        return self.params.get("name") or self.base_url.split("//", 1)[-1]
-
-    @property
-    def unique_id(self) -> str:
-        return f"pagerduty_{self.base_url.split('//', 1)[-1].lower()}"
 
     @property
     def url(self) -> str:

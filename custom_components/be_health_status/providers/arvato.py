@@ -81,14 +81,6 @@ class ArvatoProvider(Provider):
     type = "arvato_nmvs"
 
     @property
-    def title(self) -> str:
-        return "NMVS"
-
-    @property
-    def unique_id(self) -> str:
-        return "arvato_nmvs"
-
-    @property
     def url(self) -> str:
         return f"{BASE_URL}/#/group/belgium-sg"
 

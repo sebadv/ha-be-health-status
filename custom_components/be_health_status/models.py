@@ -75,6 +75,18 @@ class Event:
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     component_ids: list[str] = field(default_factory=list)
+    #: True/False when the page says whether users are affected, None when it doesn't say.
+    business_impact: bool | None = None
+    #: Free-form details for attributes (partner, scope, impact text, ...).
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def is_over(self, now: datetime) -> bool:
+        """True once the end time has passed."""
+        return self.ends_at is not None and self.ends_at <= now
+
+    def is_ongoing(self, now: datetime) -> bool:
+        """True between start and end."""
+        return self.starts_at is not None and self.starts_at <= now and not self.is_over(now)
 
 
 @dataclass(slots=True)

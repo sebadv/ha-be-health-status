@@ -13,3 +13,6 @@ CONF_TOPICS = "topics"
 CONF_SECTORS = "sectors"
 CONF_SOURCES = "sources"
 CONF_COMPONENTS = "components"
+
+ISSUE_PREFIX = "source_failing_"
+ISSUES_URL = "https://github.com/sebadv/ha-be-health-status/issues"

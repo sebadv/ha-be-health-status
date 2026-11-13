@@ -24,24 +24,13 @@ class Provider(ABC):
 
     #: Stable identifier stored in the config entry.
     type: ClassVar[str]
-    #: Fields the config flow asks for, besides the component selection.
-    #: Each item: (key, kind, default). kind is "url", "language", "sector",
-    #: or "select:<a>,<b>" for a fixed choice list.
-    fields: ClassVar[tuple[tuple[str, str, Any], ...]] = ()
-    scan_interval: ClassVar[timedelta] = timedelta(minutes=1)
+    #: How often to poll. JSON APIs are cheap; HTML pages are polled less often.
+    scan_interval: ClassVar[timedelta] = timedelta(minutes=2)
+    #: Whether the source announces (planned) maintenance.
+    has_maintenance: ClassVar[bool] = False
 
     def __init__(self, params: dict[str, Any]) -> None:
         self.params = params
-
-    @property
-    @abstractmethod
-    def title(self) -> str:
-        """Human readable name of this status page."""
-
-    @property
-    @abstractmethod
-    def unique_id(self) -> str:
-        """Identifies this page so the same page is not added twice."""
 
     @property
     def url(self) -> str | None:
