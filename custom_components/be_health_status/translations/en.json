@@ -39,7 +39,7 @@
       "no_sectors": "Tick at least one sector."
     },
     "abort": {
-      "already_configured": "BE Health Status is already set up. Use Configure on it to change what you follow."
+      "single_instance_allowed": "BE Health Status is already set up. Use Configure on it to change what you follow."
     }
   },
   "options": {
@@ -175,6 +175,14 @@
     "source_failing": {
       "title": "{source} can't be read",
       "description": "BE Health Status has not been able to read the {source} status page since {since}.\n\nLast error: {error}\n\nThe site may be down for a while, or its page may have changed. If this lasts, please report it so the integration can be updated. This message disappears by itself as soon as {source} answers again."
+    }
+  },
+  "exceptions": {
+    "no_source_answered": {
+      "message": "None of the status pages answered: {errors}"
+    },
+    "source_unreachable": {
+      "message": "{source} could not be read: {error}"
     }
   }
 }

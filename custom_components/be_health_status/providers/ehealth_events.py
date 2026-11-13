@@ -35,9 +35,7 @@ EVENTS_TTL = 600  # seconds; the default, the user can change it under Configure
 INCIDENT_MAX_AGE = timedelta(days=7)
 _CLOSED_STATES = {"solved", "resolved", "closed", "opgelost", "résolu"}
 
-_PERIOD = re.compile(
-    r"(\d{2}/\d{2}/\d{2})\s+(\d{1,2}:\d{2})\s*-\s*(?:(\d{2}/\d{2}/\d{2})\s+)?(\d{1,2}:\d{2})"
-)
+_PERIOD = re.compile(r"(\d{2}/\d{2}/\d{2})\s+(\d{1,2}:\d{2})\s*-\s*(?:(\d{2}/\d{2}/\d{2})\s+)?(\d{1,2}:\d{2})")
 
 
 def html_to_text(value: Any) -> str | None:
@@ -108,9 +106,7 @@ def parse_interventions(page: str, partners: set[str] | None = None) -> list[Eve
                 url=f"{SITE}{url}" if isinstance(url, str) and url.startswith("/") else url,
                 starts_at=start,
                 ends_at=end,
-                business_impact=(
-                    False if impact_label.startswith("no ") else True if impact_label else None
-                ),
+                business_impact=(False if impact_label.startswith("no ") else True if impact_label else None),
                 details={
                     "partner": partner,
                     "type": (item.get("type") or "").replace("type.", "") or None,

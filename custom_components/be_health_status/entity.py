@@ -60,17 +60,12 @@ class HealthStatusEntity(CoordinatorEntity[SourceCoordinator]):
         if not self.coordinator.data:
             return []
         selected = set(self.source.components)
-        events = (
-            self.coordinator.data.incidents()
-            if kind == "incident"
-            else self.coordinator.data.maintenances()
-        )
+        events = self.coordinator.data.incidents() if kind == "incident" else self.coordinator.data.maintenances()
         now = dt_util.utcnow()
         return [
             e
             for e in events
-            if not e.is_over(now)
-            and (not e.component_ids or not selected or selected & set(e.component_ids))
+            if not e.is_over(now) and (not e.component_ids or not selected or selected & set(e.component_ids))
         ]
 
     def upcoming_maintenance(self) -> list[Event]:

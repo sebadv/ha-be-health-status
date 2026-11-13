@@ -25,8 +25,17 @@ _KEYWORDS: tuple[tuple[Status, tuple[str, ...]], ...] = (
     (Status.PARTIAL_OUTAGE, ("gedeeltelijk", "partiel", "partial")),
     (
         Status.MAJOR_OUTAGE,
-        ("onderbreking", "storing", "niet beschikbaar", "onbeschikbaar", "indisponible",
-         "interruption", "panne", "outage", "unavailable"),
+        (
+            "onderbreking",
+            "storing",
+            "niet beschikbaar",
+            "onbeschikbaar",
+            "indisponible",
+            "interruption",
+            "panne",
+            "outage",
+            "unavailable",
+        ),
     ),
     (Status.DEGRADED, ("verminder", "verstoor", "dégrad", "degrad", "perturb", "trage", "lent")),
     (Status.OPERATIONAL, ("operation", "opération", "beschikbaar", "disponible", "ok")),
@@ -45,7 +54,7 @@ def status_from_ehealth(code: Any, name: str | None) -> Status:
 
 
 def short_group_name(name: str) -> tuple[str, int | None]:
-    """"9. Services for … - MetaHub, Consent & …" -> ("MetaHub, Consent & …", 9).
+    """ "9. Services for … - MetaHub, Consent & …" -> ("MetaHub, Consent & …", 9).
 
     The page numbers its groups and adds a long explanation after " - "; keep
     the shortest part (usually the service's own name) and the number for sorting.

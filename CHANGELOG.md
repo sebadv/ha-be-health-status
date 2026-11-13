@@ -3,6 +3,13 @@
 Each release in the Marketplace (HACS) shows the section of its version below.
 Keep it short: one line per change, written for users.
 
+## 0.7.0
+
+- Fewer database writes: long lists (incidents, upcoming maintenance) are no longer stored in the history
+- Error messages are now translated (Dutch, French, English)
+- Adding the integration a second time is blocked by Home Assistant itself
+- Tested on Home Assistant 2025.8 and the newest version
+
 ## 0.6.0
 
 - New: choose the language of the service names (Dutch or French) under **Configure → What I follow**

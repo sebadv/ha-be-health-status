@@ -10,25 +10,25 @@ import pytest
 
 pytest.importorskip("pytest_homeassistant_custom_component")
 
-from homeassistant import config_entries  # noqa: E402
-from homeassistant.config_entries import ConfigEntryState  # noqa: E402
-from homeassistant.core import HomeAssistant  # noqa: E402
-from homeassistant.data_entry_flow import FlowResultType, InvalidData  # noqa: E402
-from homeassistant.helpers import device_registry as dr  # noqa: E402
-from homeassistant.helpers import entity_registry as er  # noqa: E402
-from pytest_homeassistant_custom_component.common import MockConfigEntry  # noqa: E402
+from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType, InvalidData
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.be_health_status.const import DOMAIN  # noqa: E402
-from custom_components.be_health_status.diagnostics import (  # noqa: E402
+from custom_components.be_health_status.const import DOMAIN
+from custom_components.be_health_status.diagnostics import (
     async_get_config_entry_diagnostics,
 )
-from custom_components.be_health_status.providers import PROVIDERS, ProviderError  # noqa: E402
-from custom_components.be_health_status.providers.arvato import parse_arvato  # noqa: E402
-from custom_components.be_health_status.providers.ehealth import parse_ehealth  # noqa: E402
-from custom_components.be_health_status.providers.ibz import parse_ibz  # noqa: E402
-from custom_components.be_health_status.providers.intermut import parse_intermut  # noqa: E402
-from custom_components.be_health_status.providers.pagerduty import parse_pagerduty  # noqa: E402
-from custom_components.be_health_status.providers.statuspage import parse_statuspage  # noqa: E402
+from custom_components.be_health_status.providers import PROVIDERS, ProviderError
+from custom_components.be_health_status.providers.arvato import parse_arvato
+from custom_components.be_health_status.providers.ehealth import parse_ehealth
+from custom_components.be_health_status.providers.ibz import parse_ibz
+from custom_components.be_health_status.providers.intermut import parse_intermut
+from custom_components.be_health_status.providers.pagerduty import parse_pagerduty
+from custom_components.be_health_status.providers.statuspage import parse_statuspage
 
 IAM = "group:AXAQooF-9v9nOdhekPYm"
 RECIP = "944b9851f3bd2e4c4ca869a9d1e6d345"
@@ -122,7 +122,7 @@ async def test_only_one_entry(hass: HomeAssistant) -> None:
     await _setup_via_flow(hass)
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "already_configured"
+    assert result["reason"] == "single_instance_allowed"
 
 
 async def test_no_topics_and_sectors_errors(hass: HomeAssistant) -> None:
@@ -243,9 +243,7 @@ async def test_polling_interval_has_a_minimum(hass: HomeAssistant) -> None:
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "polling"})
     with pytest.raises(InvalidData):  # rejected by the form: below 1 minute
-        await hass.config_entries.options.async_configure(
-            result["flow_id"], {"ehealth": 0, "itsme": 2, "calendar": 10}
-        )
+        await hass.config_entries.options.async_configure(result["flow_id"], {"ehealth": 0, "itsme": 2, "calendar": 10})
 
 
 async def test_one_failing_source_does_not_block_others(hass: HomeAssistant, snapshots) -> None:
@@ -256,6 +254,9 @@ async def test_one_failing_source_does_not_block_others(hass: HomeAssistant, sna
     assert entry.state is ConfigEntryState.LOADED
     registry = er.async_get(hass)
     assert hass.states.get(registry.async_get_entity_id("sensor", DOMAIN, "itsme_overall")).state == "unavailable"
+    error = entry.runtime_data["itsme"].coordinator.last_exception
+    assert error.translation_key == "source_unreachable"
+    assert error.translation_placeholders["source"] == "itsme"
     assert hass.states.get(registry.async_get_entity_id("sensor", DOMAIN, f"ehealth_c_{RECIP}")).state == "operational"
 
 
@@ -317,13 +318,31 @@ async def test_ehealth_maintenance_and_incidents(hass: HomeAssistant, snapshots)
 
     now = dt_util.utcnow()
     snapshots["ehealth"].events = [
-        Event(id="past", name="Past", kind="maintenance", starts_at=now - timedelta(days=2),
-              ends_at=now - timedelta(days=1), business_impact=True),
-        Event(id="quiet", name="No impact", kind="maintenance", starts_at=now + timedelta(hours=1),
-              ends_at=now + timedelta(hours=2), business_impact=False),
-        Event(id="io300", name="CIN-NIC - Maintenance IO300", kind="maintenance",
-              starts_at=now + timedelta(days=1), ends_at=now + timedelta(days=1, hours=3),
-              business_impact=True, details={"partner": "CIN-NIC"}),
+        Event(
+            id="past",
+            name="Past",
+            kind="maintenance",
+            starts_at=now - timedelta(days=2),
+            ends_at=now - timedelta(days=1),
+            business_impact=True,
+        ),
+        Event(
+            id="quiet",
+            name="No impact",
+            kind="maintenance",
+            starts_at=now + timedelta(hours=1),
+            ends_at=now + timedelta(hours=2),
+            business_impact=False,
+        ),
+        Event(
+            id="io300",
+            name="CIN-NIC - Maintenance IO300",
+            kind="maintenance",
+            starts_at=now + timedelta(days=1),
+            ends_at=now + timedelta(days=1, hours=3),
+            business_impact=True,
+            details={"partner": "CIN-NIC"},
+        ),
     ]
     await _setup_ehealth_recip_only(hass)
 
@@ -335,10 +354,21 @@ async def test_ehealth_maintenance_and_incidents(hass: HomeAssistant, snapshots)
 
     # A maintenance with business impact is going on, and an incident is being investigated.
     snapshots["ehealth"].events = [
-        Event(id="now", name="Recip-e release", kind="maintenance", starts_at=now - timedelta(minutes=5),
-              ends_at=now + timedelta(hours=1), business_impact=True),
-        Event(id="inc", name="Issues impacting Recip-e", kind="incident", status="Investigating",
-              details={"description": "Our teams are investigating."}),
+        Event(
+            id="now",
+            name="Recip-e release",
+            kind="maintenance",
+            starts_at=now - timedelta(minutes=5),
+            ends_at=now + timedelta(hours=1),
+            business_impact=True,
+        ),
+        Event(
+            id="inc",
+            name="Issues impacting Recip-e",
+            kind="incident",
+            status="Investigating",
+            details={"description": "Our teams are investigating."},
+        ),
     ]
     coordinator = hass.config_entries.async_entries(DOMAIN)[0].runtime_data["ehealth"].coordinator
     await coordinator.async_refresh()

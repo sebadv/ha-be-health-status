@@ -89,6 +89,7 @@ class OverallStatusSensor(HealthStatusEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = STATUS_OPTIONS
     _attr_translation_key = "overall"
+    _unrecorded_attributes = frozenset({"affected", "maintenance"})
 
     def __init__(self, source: SourceRuntime) -> None:
         super().__init__(source, "overall")
@@ -121,6 +122,8 @@ class NextMaintenanceSensor(HealthStatusEntity, SensorEntity):
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_translation_key = "next_maintenance"
+    # Long texts change often; keep them out of the history database.
+    _unrecorded_attributes = frozenset({"upcoming", "description", "impact", "scope"})
 
     def __init__(self, source: SourceRuntime) -> None:
         super().__init__(source, "next_maintenance")

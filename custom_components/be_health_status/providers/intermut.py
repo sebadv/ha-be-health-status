@@ -10,7 +10,6 @@ import re
 import unicodedata
 from typing import Any
 
-
 import aiohttp
 
 from ..models import Component, Snapshot, Status, worst
@@ -62,7 +61,7 @@ def parse_intermut(html: str, lang: str = "nl") -> Snapshot:
         members: list[Component] = []
         for row in table.find_all("tr"):
             label_cell, value_cell = row.find("th"), row.find("td")
-            if label_cell is None or value_cell is None or head is not None and row.parent is head:
+            if label_cell is None or value_cell is None or (head is not None and row.parent is head):
                 continue
             label_full = label_cell.text()
             comp = Component(

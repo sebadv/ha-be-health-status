@@ -31,6 +31,7 @@ class ProblemSensor(HealthStatusEntity, BinarySensorEntity):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_translation_key = "problem"
+    _unrecorded_attributes = frozenset({"affected", "incidents", "maintenance"})
 
     def __init__(self, source: SourceRuntime) -> None:
         super().__init__(source, "problem")
@@ -51,12 +52,20 @@ class ProblemSensor(HealthStatusEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         return {
             "affected": [
-                f"{c.name}: {c.raw_status or c.status.value}"
-                for c in self.scope()
-                if c.status in PROBLEM_STATUSES
+                f"{c.name}: {c.raw_status or c.status.value}" for c in self.scope() if c.status in PROBLEM_STATUSES
             ],
             "incidents": [
-                {k: v for k, v in {"title": e.name, "status": e.status, "impact": e.impact, "url": e.url, **e.details}.items() if v}
+                {
+                    k: v
+                    for k, v in {
+                        "title": e.name,
+                        "status": e.status,
+                        "impact": e.impact,
+                        "url": e.url,
+                        **e.details,
+                    }.items()
+                    if v
+                }
                 for e in self.relevant_events("incident")
             ],
             "maintenance": [e.name for e in self.ongoing_maintenance()],

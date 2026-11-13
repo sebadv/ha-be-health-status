@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, ClassVar
@@ -51,7 +50,7 @@ async def get_json(session: aiohttp.ClientSession, url: str) -> Any:
             if resp.status != 200:
                 raise ProviderError(f"{url} answered HTTP {resp.status}")
             return await resp.json(content_type=None)
-    except asyncio.TimeoutError as err:
+    except TimeoutError as err:
         raise ProviderError(f"{url} did not answer within {REQUEST_TIMEOUT.total:.0f}s") from err
     except (aiohttp.ClientError, ValueError) as err:
         raise ProviderError(f"{url}: {type(err).__name__}: {err}") from err
@@ -60,13 +59,11 @@ async def get_json(session: aiohttp.ClientSession, url: str) -> Any:
 async def get_text(session: aiohttp.ClientSession, url: str) -> str:
     """GET a URL and return the body as text, raising ProviderError on any failure."""
     try:
-        async with session.get(
-            url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": USER_AGENT}
-        ) as resp:
+        async with session.get(url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": USER_AGENT}) as resp:
             if resp.status != 200:
                 raise ProviderError(f"{url} answered HTTP {resp.status}")
             return await resp.text()
-    except asyncio.TimeoutError as err:
+    except TimeoutError as err:
         raise ProviderError(f"{url} did not answer within {REQUEST_TIMEOUT.total:.0f}s") from err
     except aiohttp.ClientError as err:
         raise ProviderError(f"{url}: {type(err).__name__}: {err}") from err

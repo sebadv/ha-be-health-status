@@ -31,7 +31,7 @@ if not HAS_HA and "aiohttp" not in sys.modules:
     except ImportError:
         stub = types.ModuleType("aiohttp")
 
-        class ClientTimeout:  # noqa: D101
+        class ClientTimeout:
             def __init__(self, total=None):
                 self.total = total
 

@@ -43,14 +43,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: HealthStatusConfigEntry)
     if runtime and not any(r.coordinator.last_update_success for r in runtime.values()):
         # Nothing answered at all: most likely no internet. Let Home Assistant retry.
         raise ConfigEntryNotReady(
-            "; ".join(f"{r.title}: {r.coordinator.last_exception}" for r in runtime.values())
+            translation_domain=DOMAIN,
+            translation_key="no_source_answered",
+            translation_placeholders={
+                "errors": "; ".join(f"{r.title}: {r.coordinator.last_exception}" for r in runtime.values())
+            },
         )
     entry.runtime_data = runtime
 
     # Drop repair issues of sources that are no longer followed.
     issues = ir.async_get(hass)
     for domain, issue in list(issues.issues):
-        if domain == DOMAIN and issue.startswith(ISSUE_PREFIX) and issue[len(ISSUE_PREFIX):] not in runtime:
+        if domain == DOMAIN and issue.startswith(ISSUE_PREFIX) and issue[len(ISSUE_PREFIX) :] not in runtime:
             ir.async_delete_issue(hass, DOMAIN, issue)
 
     # Remove devices of sources that are no longer followed.

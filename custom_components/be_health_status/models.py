@@ -34,9 +34,7 @@ SEVERITY: dict[Status, int] = {
     Status.MAJOR_OUTAGE: 5,
 }
 
-PROBLEM_STATUSES = frozenset(
-    {Status.MAINTENANCE, Status.DEGRADED, Status.PARTIAL_OUTAGE, Status.MAJOR_OUTAGE}
-)
+PROBLEM_STATUSES = frozenset({Status.MAINTENANCE, Status.DEGRADED, Status.PARTIAL_OUTAGE, Status.MAJOR_OUTAGE})
 
 
 def worst(statuses: list[Status] | tuple[Status, ...] | set[Status]) -> Status:

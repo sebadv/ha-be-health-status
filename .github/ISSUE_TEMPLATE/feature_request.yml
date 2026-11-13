@@ -1,0 +1,11 @@
+name: Idea or new source
+description: Suggest an improvement or another status page to follow
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: For a new source, add the link to its status page.
+    validations:
+      required: true

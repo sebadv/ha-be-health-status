@@ -6,7 +6,6 @@ coloured dot and a tooltip on every page.
 
 from __future__ import annotations
 
-
 import aiohttp
 
 from ..models import Component, Snapshot, Status

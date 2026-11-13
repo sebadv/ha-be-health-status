@@ -67,9 +67,7 @@ class SourceCoordinator(DataUpdateCoordinator[Snapshot]):
 
     config_entry: HealthStatusConfigEntry
 
-    def __init__(
-        self, hass: HomeAssistant, entry: HealthStatusConfigEntry, key: str, source: dict[str, Any]
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, entry: HealthStatusConfigEntry, key: str, source: dict[str, Any]) -> None:
         self.key = key
         self.title: str = source.get("title", key)
         self.provider: Provider = build_provider(source["provider"], dict(source.get("params", {})))
@@ -88,7 +86,11 @@ class SourceCoordinator(DataUpdateCoordinator[Snapshot]):
             snapshot = await self.provider.async_fetch(async_get_clientsession(self.hass))
         except ProviderError as err:
             self._note_failure(err)
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="source_unreachable",
+                translation_placeholders={"source": self.title, "error": str(err)},
+            ) from err
         if self.failing_since is not None:
             self.failing_since = None
             ir.async_delete_issue(self.hass, DOMAIN, issue_id(self.key))
