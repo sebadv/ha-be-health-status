@@ -35,10 +35,11 @@ jobs:
       - name: Install Home Assistant test harness
         run: |
           if [ -n "${{ matrix.homeassistant }}" ]; then
-            # Use the dependency versions that Home Assistant release shipped with.
+            # Use the dependency versions that Home Assistant release shipped with
+            # (pycares 5 came later and breaks the aiodns of that time).
             curl -sSfL -o constraints.txt \
               "https://raw.githubusercontent.com/home-assistant/core/${{ matrix.homeassistant }}/homeassistant/package_constraints.txt"
-            pip install -c constraints.txt pytest-homeassistant-custom-component "homeassistant==${{ matrix.homeassistant }}"
+            pip install -c constraints.txt pytest-homeassistant-custom-component "homeassistant==${{ matrix.homeassistant }}" "pycares<5"
           else
             pip install pytest-homeassistant-custom-component
           fi
