@@ -35,7 +35,10 @@ jobs:
       - name: Install Home Assistant test harness
         run: |
           if [ -n "${{ matrix.homeassistant }}" ]; then
-            pip install pytest-homeassistant-custom-component "homeassistant==${{ matrix.homeassistant }}"
+            # Use the dependency versions that Home Assistant release shipped with.
+            curl -sSfL -o constraints.txt \
+              "https://raw.githubusercontent.com/home-assistant/core/${{ matrix.homeassistant }}/homeassistant/package_constraints.txt"
+            pip install -c constraints.txt pytest-homeassistant-custom-component "homeassistant==${{ matrix.homeassistant }}"
           else
             pip install pytest-homeassistant-custom-component
           fi
